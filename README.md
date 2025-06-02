@@ -1,9 +1,10 @@
-# Welcome to your Expo app 👋
+# WeitNah
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Weitnah created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
 ## Get started
 
+### Client
 1. Install dependencies
 
    ```bash
@@ -25,26 +26,33 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
-## Get a fresh project
+### Server
+1. Prerequirement
+   - Install MongoDB for database
 
-When you're ready, run:
+2. Install dependencies
 
-```bash
-npm run reset-project
-```
+   ```bash
+   npm install
+   ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+3. Start the app
 
-## Learn more
+   ```bash
+    npm run start
+   ```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Details
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### App Description
+Weitnah is a chat application built using React Native and Expo. It provides a seamless and responsive interface for real-time communication. The app supports features like:
 
-## Join the community
+- Instant messaging
+- User authentication
+- Push notifications
+- Cross-platform compatibility (Web, iOS, and Android)
 
-Join our community of developers creating universal apps.
+The project is designed to be scalable and maintainable, leveraging modern tools and best practices in mobile app development.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Tutorials
+- https://www.youtube.com/watch?v=db_cg5xOSLs&list=PLDMXqpbtInQg2DNxyK9QoMp-9iRJhhxxC&index=2
