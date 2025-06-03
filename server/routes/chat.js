@@ -6,7 +6,12 @@ const upload = require('../middleware/uploadMiddleware');
 const {
   createChat,
   sendMessage,
-  getMessages
+  getMessages,
+  getChatDetail,
+  deleteChat,
+  editMessage,
+  deleteMessage,
+  editGroupChat
 } = require('../controllers/chatController');
 
 // Chat
