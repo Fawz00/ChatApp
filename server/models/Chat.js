@@ -1,11 +1,14 @@
 const mongoose = require('mongoose');
 
+const mongoose = require('mongoose');
+
 const ChatSchema = new mongoose.Schema({
   isGroup: { type: Boolean, default: false },
-  name: String, // nama grup
-  description: String, // deskripsi grup
-  groupPhoto: String, // path ke gambar
+  name: String,
+  description: String,
+  groupPhoto: String,
   participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  admins: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // ← Tambahan di sini
   lastMessage: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' }
 }, { timestamps: true });
 

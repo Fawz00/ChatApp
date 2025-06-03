@@ -7,13 +7,18 @@ exports.createChat = async (req, res) => {
   const { userIds, isGroup, name, description } = req.body;
   const groupPhoto = req.file?.path;
 
+  const creator = req.user;
+
   try {
+    const uniqueParticipants = [...new Set([...userIds, creator])];
+
     const chat = new Chat({
       isGroup,
       name: isGroup ? name : undefined,
       description: isGroup ? description : undefined,
       groupPhoto: isGroup && groupPhoto ? groupPhoto : undefined,
-      participants: [...new Set([...userIds, req.user])]
+      participants: uniqueParticipants,
+      admins: isGroup ? [creator] : [] // creator adalah admin pertama
     });
 
     await chat.save();
@@ -67,6 +72,10 @@ exports.editGroupChat = async (req, res) => {
     const chat = await Chat.findById(chatId);
     if (!chat || !chat.isGroup) {
       return res.status(400).json({ msg: 'Chat tidak valid atau bukan grup' });
+    }
+
+    if (!chat.admins.includes(req.user.toString())) {
+      return res.status(403).json({ msg: 'Hanya admin yang boleh mengedit grup' });
     }
 
     if (!chat.participants.includes(req.user.toString())) {
