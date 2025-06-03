@@ -1,63 +1,58 @@
 import { Button } from "@/components/ui/button";
 import React from "react";
-import { HeroSection } from "./HeroSection";
-import { SignInFormSection } from "./SignInFormSection";
+import { FooterSection } from "./FooterSection";
+import { HeaderSection } from "./HeaderSection";
+import { MainContentSection } from "./MainContentSection";
 
 export default function LoginPage(): JSX.Element {
   return (
-    <div className="flex w-full min-h-screen bg-white overflow-hidden">
-      <div className="relative flex w-full">
-        {/* Left side with hero content */}
+    <div className="relative w-full min-h-screen bg-white overflow-hidden flex flex-col">
+      <HeaderSection />
+
+      <div className="flex flex-1">
+        {/* Left side content */}
         <div className="relative w-1/2 flex flex-col">
-          {/* Background elements */}
-          <img
-            className="absolute w-full h-full top-0 left-0 object-cover z-0"
-            alt="Rectangle"
-            src=""
-          />
+          {/* Decorative image elements */}
+          <div className="relative">
+            <img className="w-[770px] h-[398px]" alt="Rectangle" src="" />
+            <img
+              className="absolute top-0 left-0 w-[921px] h-[398px] object-cover"
+              alt="Desain tanpa judul"
+              src=""
+            />
+          </div>
 
-          <img
-            className="absolute w-full h-auto top-0 left-0 object-cover z-10"
-            alt="Desain tanpa judul"
-            src=""
-          />
-
-          {/* Hero section with welcome text */}
-          <div className="relative z-20 flex flex-col px-28 mt-80">
-            <h1 className="text-8xl font-normal [background:linear-gradient(90deg,rgba(17,26,115,1)_50%,rgba(223,55,161,1)_100%)] [-webkit-background-clip:text] bg-clip-text text-transparent [font-family:'Inter-Regular',Helvetica] tracking-normal leading-normal whitespace-nowrap">
+          {/* Welcome text */}
+          <div className="mt-16 ml-28">
+            <h1 className="text-8xl font-normal tracking-normal leading-normal whitespace-nowrap bg-gradient-to-r from-[rgba(17,26,115,1)] to-[rgba(223,55,161,1)] bg-clip-text text-transparent [font-family:'Inter-Regular',Helvetica]">
               Hey There!
             </h1>
 
-            <h2 className="text-3xl font-medium [font-family:'Inter-Medium',Helvetica] text-black mt-4 ml-32">
+            <h2 className="mt-6 ml-32 text-[32px] font-medium text-black tracking-normal leading-normal [font-family:'Inter-Medium',Helvetica]">
               welcome back
             </h2>
 
-            <p className="text-2xl font-normal [font-family:'Inter-Regular',Helvetica] text-black mt-2">
+            <p className="mt-2 text-2xl font-normal text-black tracking-normal leading-normal [font-family:'Inter-Regular',Helvetica]">
               Youre are just one step away to your feed
             </p>
           </div>
 
           {/* Sign up section */}
-          <div className="relative z-20 flex flex-col items-center mt-auto mb-32">
-            <p className="text-2xl font-normal [font-family:'Inter-Regular',Helvetica] text-black opacity-50 mb-4">
+          <div className="mt-auto mb-32 ml-28">
+            <p className="opacity-50 text-2xl font-normal text-black tracking-normal leading-normal [font-family:'Inter-Regular',Helvetica]">
               Don&apos;t have an account?
             </p>
 
-            <Button className="w-60 h-[69px] rounded-[15px] bg-[color:var(--color-background-brand-default)] text-[color:var(--color-text-brand-on-brand)] border-[color:var(--color-border-brand-default)]">
+            <Button className="mt-6 w-60 h-[69px] rounded-[15px] bg-[color:var(--color-background-brand-default)] text-[color:var(--color-text-brand-on-brand)] border-[color:var(--color-border-brand-default)]">
               Sign Up
             </Button>
           </div>
-
-          {/* Import the HeroSection component */}
-          <HeroSection />
         </div>
 
-        {/* Right side with sign in form */}
-        <div className="relative w-1/2">
-          <div className="absolute w-full h-full top-0 left-0 rounded-[50px] [background:linear-gradient(180deg,rgba(17,26,115,1)_30%,rgba(223,55,161,1)_70%)] opacity-25" />
-
-          {/* Import the SignInFormSection component */}
-          <SignInFormSection />
+        {/* Right side with main content and footer */}
+        <div className="w-1/2 flex flex-col">
+          <MainContentSection />
+          <FooterSection />
         </div>
       </div>
     </div>
