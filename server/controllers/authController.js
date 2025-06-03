@@ -5,16 +5,25 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const register = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, username } = req.body;
 
   try {
+    if (!username || username.length < 3)
+      return res.status(400).json({ message: 'Username must be at least 3 characters long' });
+    if (!password || password.length < 6)
+      return res.status(400).json({ message: 'Password must be at least 6 characters long' });
+
     const userExists = await User.findOne({ email });
     if (userExists)
-      return res.status(400).json({ message: 'Email sudah digunakan' });
+      return res.status(400).json({ message: 'Email has already been registered' });
+    
+    const usernameExists = await User.findOne({ username });
+    if (usernameExists)
+      return res.status(400).json({ message: 'Username has already been taken' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = new User({ email, password: hashedPassword });
+    const user = new User({ email, password: hashedPassword, username });
     await user.save();
 
     res.status(201).json({ message: 'User berhasil dibuat' });
@@ -62,6 +71,8 @@ const forgotPassword = async (req, res) => {
       <h3>Reset Password</h3>
       <p>Klik link berikut untuk mengatur ulang password:</p>
       <a href="${link}">${link}</a>
+      <p>Token: <strong>${token}</strong></p>
+      <p>Jangan bagikan token ke siapapun!</p>
       <p>Link ini hanya berlaku selama 1 jam.</p>
     `;
 
