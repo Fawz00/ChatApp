@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/authMiddleware');
-const upload = require('../middleware/upload');
+const upload = require('../middleware/uploadMiddleware');
 
 const {
   createChat,
@@ -9,13 +9,16 @@ const {
   getMessages
 } = require('../controllers/chatController');
 
-// Create chat (group atau private)
-router.post('/create', auth, createChat);
+// Chat
+router.post('/create', auth, upload.single('groupPhoto'), createChat);
+router.get('/:chatId', auth, getChatDetail);
+router.put('/:chatId', auth, upload.single('groupPhoto'), editGroupChat);
+router.delete('/:chatId', auth, deleteChat);
 
-// Kirim pesan (bisa teks atau media)
+// Message
 router.post('/send', auth, upload.single('media'), sendMessage);
-
-// Get messages
 router.get('/:chatId/messages', auth, getMessages);
+router.put('/message/:messageId', auth, editMessage);
+router.delete('/message/:messageId', auth, deleteMessage);
 
 module.exports = router;
