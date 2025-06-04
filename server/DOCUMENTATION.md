@@ -13,7 +13,7 @@ http://localhost:5000/api
 ### Register
 
 - **Endpoint:** `POST /auth/register`
-- **Body:**
+- **Request Body:**
     ```json
     {
         "username": "string",
@@ -21,27 +21,39 @@ http://localhost:5000/api
         "password": "string"
     }
     ```
-- **Response:** `201 Created`
+- **Success Response:** `201 Created`
     ```json
     {
         "message": "User registered successfully"
+    }
+    ```
+- **Error Response:**  
+    ```json
+    {
+        "error": "Error message"
     }
     ```
 
 ### Login
 
 - **Endpoint:** `POST /auth/login`
-- **Body:**
+- **Request Body:**
     ```json
     {
         "email": "string",
         "password": "string"
     }
     ```
-- **Response:** `200 OK`
+- **Success Response:** `200 OK`
     ```json
     {
         "token": "jwt_token"
+    }
+    ```
+- **Error Response:**  
+    ```json
+    {
+        "error": "Error message"
     }
     ```
 
@@ -52,13 +64,20 @@ http://localhost:5000/api
 ### Get User Profile
 
 - **Endpoint:** `GET /users/:id`
-- **Headers:** `Authorization: Bearer <token>`
-- **Response:** `200 OK`
+- **Headers:**  
+    `Authorization: Bearer <token>`
+- **Success Response:** `200 OK`
     ```json
     {
         "id": "string",
         "username": "string",
         "email": "string"
+    }
+    ```
+- **Error Response:**  
+    ```json
+    {
+        "error": "Error message"
     }
     ```
 
@@ -69,8 +88,9 @@ http://localhost:5000/api
 ### Get User Chats
 
 - **Endpoint:** `GET /chats`
-- **Headers:** `Authorization: Bearer <token>`
-- **Response:** `200 OK`
+- **Headers:**  
+    `Authorization: Bearer <token>`
+- **Success Response:** `200 OK`
     ```json
     [
         {
@@ -80,21 +100,34 @@ http://localhost:5000/api
         }
     ]
     ```
+- **Error Response:**  
+    ```json
+    {
+        "error": "Error message"
+    }
+    ```
 
 ### Create Chat
 
 - **Endpoint:** `POST /chats`
-- **Headers:** `Authorization: Bearer <token>`
-- **Body:**
+- **Headers:**  
+    `Authorization: Bearer <token>`
+- **Request Body:**
     ```json
     {
         "participantId": "string"
     }
     ```
-- **Response:** `201 Created`
+- **Success Response:** `201 Created`
     ```json
     {
         "chatId": "string"
+    }
+    ```
+- **Error Response:**  
+    ```json
+    {
+        "error": "Error message"
     }
     ```
 
@@ -105,15 +138,16 @@ http://localhost:5000/api
 ### Send Message
 
 - **Endpoint:** `POST /messages`
-- **Headers:** `Authorization: Bearer <token>`
-- **Body:**
+- **Headers:**  
+    `Authorization: Bearer <token>`
+- **Request Body:**
     ```json
     {
         "chatId": "string",
         "content": "string"
     }
     ```
-- **Response:** `201 Created`
+- **Success Response:** `201 Created`
     ```json
     {
         "messageId": "string",
@@ -122,12 +156,19 @@ http://localhost:5000/api
         "timestamp": "ISO8601 string"
     }
     ```
+- **Error Response:**  
+    ```json
+    {
+        "error": "Error message"
+    }
+    ```
 
 ### Get Messages
 
 - **Endpoint:** `GET /messages/:chatId`
-- **Headers:** `Authorization: Bearer <token>`
-- **Response:** `200 OK`
+- **Headers:**  
+    `Authorization: Bearer <token>`
+- **Success Response:** `200 OK`
     ```json
     [
         {
@@ -138,14 +179,21 @@ http://localhost:5000/api
         }
     ]
     ```
-
----
-
-## Error Response
-
-- **Format:**
+- **Error Response:**  
     ```json
     {
         "error": "Error message"
     }
     ```
+
+---
+
+## Error Response
+
+All endpoints may return errors in the following format:
+
+```json
+{
+    "error": "Error message"
+}
+```
