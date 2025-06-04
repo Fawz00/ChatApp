@@ -1,42 +1,36 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Bell,
-  Mail,
-  Menu,
-  MessageCircle,
-  MoreHorizontal,
-  Paperclip,
-  Send,
-  Settings,
-  User,
+  LayoutDashboardIcon,
+  MessageSquareIcon,
+  PlusIcon,
+  SearchIcon,
+  SettingsIcon,
+  UserIcon,
+  UsersIcon,
 } from "lucide-react";
 import React from "react";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "../../components/ui/avatar";
+import { Badge } from "../../components/ui/badge";
+import { Button } from "../../components/ui/button";
+import { Card, CardContent } from "../../components/ui/card";
+import { Input } from "../../components/ui/input";
+import { Tabs, TabsList, TabsTrigger } from "../../components/ui/tabs";
 
-const PengaturanAccount = (): JSX.Element => {
-  // Teams data
+export const ChatAplication = (): JSX.Element => {
+  // Team data for mapping
   const teams = [
-    { id: 1, name: "Google", color: "#8a91d7", initial: "G" },
-    { id: 2, name: "Slack", color: "#df36a1", initial: "S" },
-    { id: 3, name: "Upwork", color: "#101973", initial: "U" },
-    { id: 4, name: "Fiver", color: "#9c157f", initial: "F" },
-    { id: 5, name: "Amazon", color: "#1d5742", initial: "A" },
+    { id: 1, name: "Google", color: "bg-[#8a91d7]", letter: "G" },
+    { id: 2, name: "Slack", color: "bg-[#df36a1]", letter: "S" },
+    { id: 3, name: "Upwork", color: "bg-[#101973]", letter: "U" },
+    { id: 4, name: "Fiver", color: "bg-[#9c157f]", letter: "F" },
+    { id: 5, name: "Amazon", color: "bg-[#1d5742]", letter: "A" },
   ];
 
-  // Chat contacts data
-  const contacts = [
+  // Chat data for mapping
+  const chats = [
     {
       id: 1,
       name: "Jodye",
@@ -49,12 +43,14 @@ const PengaturanAccount = (): JSX.Element => {
       name: "Felly",
       message: "Hey, how is going? Everything is fine?",
       time: "18.20",
+      unread: 0,
     },
     {
       id: 3,
       name: "Becca",
       message: "Hey, how is going? Everything is fine?",
       time: "18.03",
+      unread: 0,
     },
     {
       id: 4,
@@ -68,439 +64,207 @@ const PengaturanAccount = (): JSX.Element => {
       name: "Bica",
       message: "Hey, how is going? Everything is fine?",
       time: "17.01",
-    },
-  ];
-
-  // Chat messages data
-  const messages = [
-    {
-      id: 1,
-      sender: "Jodye",
-      content: "helloo Jonathan.",
-      time: "15 May 2025, 18.15",
-      isMe: false,
-    },
-    {
-      id: 2,
-      sender: "Jodye",
-      content: "Hey, how is going?Everything is fine?",
-      time: "15 May 2025, 18.17",
-      isMe: false,
-    },
-    {
-      id: 3,
-      sender: "Jonathan",
-      content: "helloo Jodye, i;m fine..",
-      time: "15 May 2025, 18.27",
-      isMe: true,
+      unread: 0,
     },
   ];
 
   return (
-    <div className="bg-white flex flex-row justify-center w-full h-screen">
-      <div className="bg-white overflow-hidden w-[1440px] h-[1024px] relative">
-        {/* Left sidebar with icons */}
-        <div className="absolute w-[103px] h-[1024px] top-0 left-0 bg-neutral-200 flex flex-col items-center">
-          <div className="mt-10 mb-20">
-            <Menu className="w-[45px] h-[45px]" />
-          </div>
+    <div
+      className="flex h-[1024px] items-center relative bg-white overflow-hidden w-full min-w-[1440px]"
+      data-model-id="34:341"
+    >
+      <img
+        className="relative w-[100px] h-[100px] ml-[-533.00px]"
+        alt="Ellipse"
+        src="/img/ellipse-2.svg"
+      />
 
-          <div className="flex flex-col gap-8">
-            <Settings className="w-[45px] h-[45px]" />
-            <MessageCircle className="w-[45px] h-[45px]" />
-            <User className="w-[45px] h-[45px]" />
-          </div>
-
-          <div className="mt-auto mb-10">
-            <Avatar className="w-[45px] h-[45px]">
-              <AvatarFallback>U</AvatarFallback>
-            </Avatar>
-          </div>
-        </div>
-
-        {/* Chat list panel */}
-        <div className="absolute w-[426px] h-[1024px] top-0 left-[99px] bg-[#f4f4f4]">
-          <div className="p-6">
-            <h1 className="font-medium text-text-black text-5xl">Chat</h1>
-          </div>
-
-          {/* User profile */}
-          <div className="flex flex-col items-center mt-8">
-            <Avatar className="w-[110px] h-[110px] bg-[#d9d9d9] border-2 border-solid border-[#b4b4b4] shadow-md">
-              <AvatarFallback className="text-4xl">J</AvatarFallback>
-            </Avatar>
-            <div className="w-[13px] h-[13px] bg-[#6abb82] rounded-full absolute ml-16 mt-24 border border-solid border-[#efecec]"></div>
-
-            <h2 className="font-medium text-text-black text-lg mt-4">
-              Jonathan
-            </h2>
-            <Badge className="bg-[#c8f0dc] text-[#6dc06f] font-medium mt-1">
-              Active
-            </Badge>
-          </div>
-
-          {/* Teams section */}
-          <div className="mt-12 px-4">
-            <h2 className="font-medium text-text-black text-lg mb-4">Teams</h2>
-            <div className="flex gap-2 mb-2">
-              {teams.map((team) => (
-                <div key={team.id} className="flex flex-col items-center">
-                  <Avatar
-                    className="w-[70px] h-[70px]"
-                    style={{ backgroundColor: team.color }}
-                  >
-                    <AvatarFallback className="text-[25px] text-[#cac7c7]">
-                      {team.initial}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="font-medium text-text-gray text-lg mt-2">
-                    {team.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Chats section */}
-          <div className="mt-12 px-4">
-            <h2 className="font-medium text-text-black text-lg mb-2">Chats</h2>
-
-            <div className="bg-white rounded-[10px] shadow-sm p-3 mb-4">
-              <Input
-                className="border-none text-text-gray text-[13px]"
-                placeholder="Search"
-              />
-            </div>
-
-            <Tabs defaultValue="all">
-              <TabsList className="bg-transparent p-0 h-auto">
-                <TabsTrigger
-                  value="all"
-                  className="font-normal text-main text-[13px] data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 mr-4"
-                >
-                  All
-                </TabsTrigger>
-                <TabsTrigger
-                  value="new"
-                  className="font-normal text-text-gray text-[13px] data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0"
-                >
-                  New
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="all" className="mt-4">
-                <div className="space-y-4">
-                  {contacts.map((contact) => (
-                    <div key={contact.id} className="flex items-center gap-3">
-                      <Avatar className="w-[49px] h-[49px] bg-[#d7d7dc]">
-                        <AvatarFallback>
-                          {contact.name.charAt(0)}
-                        </AvatarFallback>
-                        {/* Active indicator */}
-                        <div className="w-1.5 h-1.5 bg-[#6abb82] rounded-[3px] absolute bottom-1 right-1 border border-solid border-[#efecec]"></div>
-                      </Avatar>
-
-                      <div className="flex-1">
-                        <h3 className="font-medium text-text-black text-lg">
-                          {contact.name}
-                        </h3>
-                        <p className="font-normal text-text-gray text-[13px]">
-                          {contact.message}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col items-end">
-                        <span className="font-normal text-text-gray text-[10px]">
-                          {contact.time}
-                        </span>
-                        {contact.unread && (
-                          <div className="w-[15px] h-[15px] bg-[#d9d9d9] rounded-full mt-1 flex items-center justify-center">
-                            <span className="font-normal text-text-gray text-[10px]">
-                              {contact.unread}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="new">
-                <div className="text-center py-4 text-text-gray">
-                  No new messages
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          {/* Account settings panel */}
-          <div className="absolute bottom-0 left-[99px] w-[426px]">
-            <Card className="rounded-none border-none shadow-none">
-              <CardContent className="p-0">
-                <div className="flex flex-col">
-                  <div className="flex items-center p-4 bg-[#f4f4f4]">
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 bg-main-transparant rounded-[10px] flex items-center justify-center">
-                        <User className="w-[30px] h-[30px]" />
-                      </div>
-                      <span className="font-medium text-black text-xl">
-                        Account
-                      </span>
-                    </div>
-                    <div className="ml-4 w-4 h-4">
-                      <svg
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M6 12L10 8L6 4"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="flex items-center p-4 bg-[#f4f4f4]">
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-[10px] flex items-center justify-center">
-                        <MessageCircle className="w-[30px] h-[30px]" />
-                      </div>
-                      <span className="font-medium text-black text-xl">
-                        Chat
-                      </span>
-                    </div>
-                    <div className="ml-4 w-4 h-4">
-                      <svg
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          d="M6 12L10 8L6 4"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Account settings popup */}
-            <div className="absolute w-[233px] h-[458px] bottom-[70px] left-[170px] rounded-[50px] overflow-hidden bg-main">
-              <div className="p-5 text-white">
-                <h2 className="font-medium text-[32px] mb-6">Account</h2>
-
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="font-medium text-xl mb-2">Privacy</h3>
-                    <Select>
-                      <SelectTrigger className="w-[129px] h-8 border border-white text-white bg-transparent">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="everyone">Everyone</SelectItem>
-                        <SelectItem value="contacts">Contacts</SelectItem>
-                        <SelectItem value="nobody">Nobody</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <h3 className="font-medium text-xl mb-2">Last seen</h3>
-                    <Select>
-                      <SelectTrigger className="w-[129px] h-8 border border-white text-white bg-transparent">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="everyone">Everyone</SelectItem>
-                        <SelectItem value="contacts">Contacts</SelectItem>
-                        <SelectItem value="nobody">Nobody</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <h3 className="font-medium text-xl mb-2">Profile photo</h3>
-                    <Select>
-                      <SelectTrigger className="w-[129px] h-8 border border-white text-white bg-transparent">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="everyone">Everyone</SelectItem>
-                        <SelectItem value="contacts">Contacts</SelectItem>
-                        <SelectItem value="nobody">Nobody</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <h3 className="font-medium text-xl mb-2">About me</h3>
-                    <Select>
-                      <SelectTrigger className="w-[129px] h-8 border border-white text-white bg-transparent">
-                        <SelectValue placeholder="Select" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="everyone">Everyone</SelectItem>
-                        <SelectItem value="contacts">Contacts</SelectItem>
-                        <SelectItem value="nobody">Nobody</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Chat area */}
-        <div className="absolute w-[518px] h-[1024px] top-0 left-[522px] border-l border-r border-gray-200">
-          {/* Chat header */}
-          <div className="h-[99px] bg-[#efecec] flex items-center px-4">
-            <Avatar className="w-[49px] h-[49px]">
-              <AvatarFallback>J</AvatarFallback>
-            </Avatar>
-
-            <div className="ml-3">
-              <h2 className="font-medium text-text-black text-lg">Jodye</h2>
-              <Badge className="bg-transparent text-[#6dc06f] font-medium text-[10px] p-0">
-                Active
-              </Badge>
-            </div>
-
-            <div className="ml-auto flex gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="w-[53px] h-[53px] rounded-[10px]"
-              >
-                <Bell className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="w-[53px] h-[53px] rounded-[10px]"
-              >
-                <MoreHorizontal className="h-5 w-5" />
-              </Button>
-            </div>
-          </div>
-
-          {/* Chat messages */}
-          <div className="p-4 h-[calc(100%-180px)] overflow-y-auto">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`mb-6 flex ${message.isMe ? "justify-end" : "justify-start"}`}
-              >
-                {!message.isMe && (
-                  <Avatar className="w-[49px] h-[49px] mr-2">
-                    <AvatarFallback>J</AvatarFallback>
-                  </Avatar>
-                )}
-
-                <div className="flex flex-col">
-                  <span className="text-text-gray text-[13px] mb-1">
-                    {message.time}
-                  </span>
-                  <div
-                    className={`p-3 rounded-[10px] shadow-md max-w-[237px] ${message.isMe ? "bg-[#efecec] ml-auto" : "bg-[#efecec]"}`}
-                  >
-                    <p className="text-text-black text-[13px]">
-                      {message.content}
-                    </p>
-                  </div>
-                </div>
-
-                {message.isMe && (
-                  <Avatar className="w-[49px] h-[49px] ml-2">
-                    <AvatarFallback>Me</AvatarFallback>
-                  </Avatar>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Typing indicator */}
-          <div className="absolute bottom-[70px] left-[544px] flex items-center">
-            <Avatar className="w-[49px] h-[49px]">
-              <AvatarFallback>J</AvatarFallback>
-            </Avatar>
-            <span className="ml-4 text-text-black text-[13px]">
-              Jodye is typing
-            </span>
-          </div>
-
-          {/* Message input */}
-          <div className="absolute bottom-4 left-[544px] right-4 flex items-center">
-            <Input
-              className="bg-[#efecec] rounded-[10px] h-11 pr-24"
-              placeholder="Type here"
-            />
-            <div className="absolute right-2 flex items-center gap-2">
-              <Button variant="ghost" size="icon" className="h-auto">
-                <Paperclip className="h-6 w-6" />
-              </Button>
-              <Button className="bg-main h-[23px] rounded-[5px] px-2 flex items-center gap-1">
-                <span className="text-[#efecec] text-[13px] font-medium">
-                  send
-                </span>
-                <Send className="h-4 w-4 text-[#efecec]" />
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Right profile panel */}
-        <div className="absolute w-[300px] h-[1024px] top-0 right-0 flex flex-col items-center pt-[138px]">
-          <Avatar className="w-[110px] h-[110px] bg-[#d9d9d9] border-2 border-solid border-[#b4b4b4] shadow-md">
-            <AvatarFallback className="text-4xl">J</AvatarFallback>
-          </Avatar>
-          <div className="w-[13px] h-[13px] bg-[#6abb82] rounded-full absolute ml-16 mt-[103px] border border-solid border-[#efecec]"></div>
-
-          <h2 className="font-medium text-text-black text-lg mt-4">Jodye</h2>
-          <Badge className="bg-[#c8f0dc] text-[#6dc06f] font-medium mt-1">
-            Active
-          </Badge>
-
-          <Button className="mt-8 w-10 h-10 rounded-full bg-[#c8f0dc]">
-            <Mail className="h-5 w-4 text-black" />
+      {/* Left sidebar navigation */}
+      <div className="relative w-[103px] h-[1024px] bg-neutral-200">
+        <div className="absolute w-[47px] h-[279px] top-72 left-7 shadow-[0px_4px_4px_#00000040]">
+          <Button
+            variant="ghost"
+            className="absolute w-[45px] h-[45px] top-0 left-px p-0"
+          >
+            <LayoutDashboardIcon className="w-[45px] h-[45px]" />
           </Button>
 
-          <div className="mt-12 flex items-center">
-            <div className="w-10 h-10 bg-[#d9d9d9] rounded-[5px] flex items-center justify-center mr-3">
-              <svg
-                width="16"
-                height="20"
-                viewBox="0 0 16 20"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M8 0L0 4V10C0 15.55 3.84 20.74 8 22C12.16 20.74 16 15.55 16 10V4L8 0Z"
-                  fill="#333"
-                />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <p className="text-text-black text-[13px]">Resume template.pdf</p>
-            </div>
-            <span className="text-text-black text-[13px]">3.3 Mb</span>
-          </div>
+          <Button
+            variant="ghost"
+            className="absolute w-[45px] h-[45px] top-[156px] left-0.5 p-0"
+          >
+            <MessageSquareIcon className="w-[45px] h-[45px]" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            className="absolute w-[45px] h-[45px] top-[234px] left-0 p-0"
+          >
+            <SettingsIcon className="w-[45px] h-[45px]" />
+          </Button>
         </div>
+
+        <img
+          className="absolute w-[45px] h-[45px] top-9 left-[29px]"
+          alt="Vector"
+          src="https://c.animaapp.com/3CC1Y0ZI/img/vector.svg"
+        />
+
+        <Button
+          variant="ghost"
+          className="absolute w-[45px] h-[45px] top-[365px] left-[34px] p-0"
+        >
+          <UsersIcon className="w-[45px] h-[45px]" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          className="absolute w-[45px] h-[45px] top-[948px] left-7 p-0"
+        >
+          <UserIcon className="w-[45px] h-[45px]" />
+        </Button>
+      </div>
+
+      {/* Chat sidebar */}
+      <div className="absolute w-[426px] h-[1024px] top-0 left-[103px] bg-[#f4f4f4]">
+        {/* Header */}
+        <div className="absolute top-[45px] left-[32px] font-medium text-text-black text-lg">
+          Chat
+        </div>
+
+      {/* UserIcon profile */}
+      <div className="flex flex-col items-center absolute top-[100px] left-1/2 transform -translate-x-1/2">
+        <Avatar className="w-[110px] h-[110px] bg-[#d9d9d9] border-2 border-solid border-[#b4b4b4] shadow-[0px_4px_6px_#00000040]">
+          <AvatarImage src="" alt="Jonathan" />
+          <AvatarFallback className="relative">
+            <img
+              className="absolute w-[57px] h-16 top-[23px] left-[27px]"
+              alt="Vector"
+              src="https://c.animaapp.com/3CC1Y0ZI/img/vector-1.svg"
+            />
+            <div className="absolute w-[13px] h-[13px] bottom-1 right-1 bg-[#6abb82] rounded-full border border-solid border-white"></div>
+          </AvatarFallback>
+        </Avatar>
+        <div className="mt-3 font-medium text-text-black text-lg">
+          Jonathan
+        </div>
+        <Badge className="mt-2 bg-[#c8f0dc] text-[#6dc06f] font-medium rounded-[5px] px-4">
+          Active
+        </Badge>
+      </div>
+
+      {/* Teams section */}
+      <div className="absolute top-[320px] left-[32px]">
+        <div className="font-medium text-text-black text-lg mb-4">
+          Teams
+        </div>
+        <div className="flex space-x-4">
+          {teams.map((team) => (
+            <div key={team.id} className="flex flex-col items-center">
+              <Avatar
+                className={`w-[60px] h-[60px] ${team.color} rounded-[30px]`}
+              >
+                <AvatarFallback className="text-[#cac7c7] text-[20px]">
+                  {team.letter}
+                </AvatarFallback>
+              </Avatar>
+              <span className="mt-2 font-medium text-text-gray text-xs">
+                {team.name}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Chats section */}
+      <div className="absolute top-[480px] left-[32px] flex items-center justify-between w-[362px]">
+        <h3 className="font-medium text-text-black text-lg">Chats</h3>
+        <Button variant="ghost" size="icon" className="h-auto p-0">
+          <PlusIcon className="w-[15px] h-[15px]" />
+        </Button>
+      </div>
+
+      {/* Chat filters */}
+      <Tabs
+        defaultValue="all"
+        className="absolute top-[520px] left-[32px] w-[100px]"
+      >
+        <TabsList className="bg-transparent p-0 h-auto">
+          <TabsTrigger
+            value="all"
+            className="px-0 data-[state=active]:bg-transparent data-[state=active]:text-main data-[state=active]:shadow-none text-[13px] font-normal h-auto"
+          >
+            All
+          </TabsTrigger>
+          <TabsTrigger
+            value="new"
+            className="px-0 ml-4 data-[state=active]:bg-transparent data-[state=active]:text-main data-[state=active]:shadow-none text-text-gray text-[13px] font-normal h-auto"
+          >
+            New
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* SearchIcon bar */}
+      <div className="absolute w-[362px] h-[41px] top-[560px] left-[32px]">
+        <Card className="rounded-[10px] shadow-[0px_2px_9px_#c2c2c240] border-none">
+          <CardContent className="p-0 flex items-center">
+            <Input
+              className="border-none h-[41px] pl-3 text-[13px] font-normal text-text-gray"
+              placeholder="Search"
+            />
+            <SearchIcon className="w-[15px] h-[15px] mr-3 text-text-gray" />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Chat list */}
+      <div className="absolute w-[362px] h-[305px] top-[620px] left-[32px]">
+          {chats.map((chat, index) => (
+            <div key={chat.id} className="flex items-start mb-4 relative">
+              <Avatar className="w-[49px] h-[49px] bg-[#d7d7dc] rounded-[24.5px] relative">
+                <AvatarFallback className="relative">
+                  <img
+                    className="absolute w-7 h-7 top-[11px] left-2.5"
+                    alt="Vector"
+                    src="https://c.animaapp.com/3CC1Y0ZI/img/vector-8.svg"
+                  />
+                  <div className="absolute w-1.5 h-1.5 bottom-1.5 right-1.5 bg-[#6abb82] rounded-[3px] border border-solid border-[#efecec]"></div>
+                </AvatarFallback>
+              </Avatar>
+              <div className="ml-4 flex-1">
+                <div className="font-medium text-text-black text-lg">
+                  {chat.name}
+                </div>
+                <div className="font-normal text-text-gray text-[13px]">
+                  {chat.message}
+                </div>
+              </div>
+              <div className="flex flex-col items-end">
+                <div className="font-normal text-text-gray text-[10px]">
+                  {chat.time}
+                </div>
+                {chat.unread > 0 && (
+                  <div className="w-[15px] h-[15px] bg-[#d9d9d9] rounded-[7.5px] flex items-center justify-center mt-1">
+                    <span className="font-normal text-text-gray text-[10px]">
+                      {chat.unread}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Main content area */}
+      <div className="absolute w-[1325px] h-[1080px] -top-7 left-[50px]">
+        <img
+          className="absolute w-[1390px] h-[1024px] top-7 left-0 object-cover"
+          alt="Desain tanpa judul"
+          src="https://c.animaapp.com/3CC1Y0ZI/img/desain-tanpa-judul--1---1--1.png"
+        />
       </div>
     </div>
   );
 };
-
-export default PengaturanAccount;
