@@ -22,7 +22,7 @@ interface IndexProps {
 
 const { width } = Dimensions.get("window");
 
-export default function Register({ navigation }: IndexProps) {
+export default function ResetPassword({ navigation }: IndexProps) {
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 768;
   const isWeb = Platform.OS === "web";
@@ -40,17 +40,64 @@ export default function Register({ navigation }: IndexProps) {
       )}
 
       {/* Left Section */}
+      {isLargeScreen && (
+        <View style={styles.leftContainer}>
+          {/* Logo */}
+          <View style={styles.logoSection}>
+            <View style={styles.logoOuter}>
+              <View style={styles.logoCircle1} />
+              <View style={styles.logoCircle2} />
+            </View>
+            <View style={styles.logoText}>
+              <Text style={styles.logoTitle}>WEITNAH</Text>
+              <Text style={styles.logoSubtitle}>
+                SENANDUNG HARMONI DEKATKAN JARAK
+              </Text>
+            </View>
+          </View>
+
+          {/* Welcome Message */}
+          <View style={styles.welcomeSection}>
+            <Image
+              alt=""
+              style={styles.logoImage}
+              source={require('../../assets/images/logo_hd.png')}
+            />
+            <Text style={styles.heading}>
+              <Text style={styles.textBlue}>Hey </Text>
+              <Text style={styles.textPink}>There!</Text>
+            </Text>
+            <Text style={styles.subheading}>welcome back</Text>
+            <Text style={styles.description}>
+              You are just one step away to your feed
+            </Text>
+          </View>
+
+          {/* Sign Up CTA */}
+          <View style={styles.signupSection}>
+            <Text style={styles.signupPrompt}>Don’t have an account?</Text>
+            <TouchableOpacity
+              style={styles.signupButton}
+              onPress={() => navigation.navigate("register")}
+            >
+              <Text style={styles.signupButtonText}>Sign Up</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Right Section */}
       <LinearGradient
         colors={["#dbeafe", "#fce7f3", "#f3e8ff"]}
         start={[0, 0]}
         end={[1, 1]}
         style={[
-          styles.leftContainer,
-          isWeb && styles.leftContainerRounded,
+          styles.rightContainer,
+          isWeb && styles.rightContainerRounded,
         ]}
       >
         <View style={styles.formWrapper}>
-          <Text style={styles.signInHeader}>SIGN UP</Text>
+          <Text style={styles.signInHeader}>SIGN IN</Text>
 
           {/* Email */}
           <View style={styles.inputWrapper}>
@@ -74,17 +121,6 @@ export default function Register({ navigation }: IndexProps) {
             />
           </View>
 
-          {/* Repeat Password */}
-          <View style={styles.inputWrapper}>
-            <Feather name="lock" size={20} color="#666" style={styles.icon} />
-            <TextInput
-              placeholder="Repeat Password"
-              style={styles.input}
-              placeholderTextColor="#666"
-              secureTextEntry
-            />
-          </View>
-
           {/* Sign In Button with Gradient */}
           <TouchableOpacity style={styles.signInButton}>
             <LinearGradient
@@ -93,16 +129,16 @@ export default function Register({ navigation }: IndexProps) {
               end={[1, 0]}
               style={[styles.signInButton, { width: "100%" }]}
             >
-              <Text style={styles.signInText}>SIGN UP</Text>
+              <Text style={styles.signInText}>SIGN IN</Text>
             </LinearGradient>
           </TouchableOpacity>
 
           {/* Footer */}
           <View style={styles.footerLinks}>
             <TouchableOpacity
-              onPress={() => navigation.navigate("login")}
+              onPress={() => navigation.navigate("register")}
             >
-              <Text style={styles.footerLinkText}>Have an account</Text>
+              <Text style={styles.footerLinkText}>Create an account</Text>
             </TouchableOpacity>
             <TouchableOpacity>
               <Text style={styles.footerLinkText}>Forget Password?</Text>
@@ -110,47 +146,6 @@ export default function Register({ navigation }: IndexProps) {
           </View>
         </View>
       </LinearGradient>
-
-      {/* Right Section */}
-      {isLargeScreen && (
-        <View style={styles.rightContainer}>
-
-          <View
-            style={[{
-              flex: 1,
-              justifyContent: "center",
-            }]}>
-              
-            {/* Welcome Message */}
-            <View style={styles.welcomeSection}>
-              <Image
-                alt=""
-                style={styles.logoImage}
-                source={require('../../assets/images/logo_hd.png')}
-              />
-              <Text style={styles.heading}>
-                <Text style={styles.textBlue}>Hey </Text>
-                <Text style={styles.textPink}>There!</Text>
-              </Text>
-              <Text style={styles.subheading}>welcome</Text>
-              <Text style={styles.description}>
-                You are just a few step away to your feed
-              </Text>
-            </View>
-          </View>
-
-          {/* Sign Up CTA */}
-          <View style={styles.signupSection}>
-            <Text style={styles.signupPrompt}>Already have an account?</Text>
-            <TouchableOpacity
-              style={styles.signupButton}
-              onPress={() => navigation.navigate("login")}
-            >
-              <Text style={styles.signupButtonText}>Sign In</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
     </ScrollView>
   );
 };
@@ -162,21 +157,21 @@ const styles = StyleSheet.create({
     minHeight: "100%",
     backgroundColor: "#fff",
   },
-  rightContainer: {
+  leftContainer: {
     flex: 1,
     padding: 24,
     justifyContent: "space-between",
     backgroundColor: "#fff",
   },
-  leftContainer: {
+  rightContainer: {
     flex: 1,
     padding: 24,
     justifyContent: "center",
     alignItems: "center",
   },
-  leftContainerRounded: {
-    borderTopRightRadius: 48,
-    borderBottomRightRadius: 48,
+  rightContainerRounded: {
+    borderTopLeftRadius: 48,
+    borderBottomLeftRadius: 48,
   },
   logoImage: {
     marginTop: 24,

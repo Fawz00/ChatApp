@@ -1,4 +1,5 @@
 import React from "react";
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +16,7 @@ import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { API_URL, useAuth } from "../api/AuthProvider";
 type AuthScreenNavigationProp = NativeStackNavigationProp<any>;
 interface IndexProps {
   navigation: AuthScreenNavigationProp;
@@ -23,9 +25,66 @@ interface IndexProps {
 const { width } = Dimensions.get("window");
 
 export default function Login({ navigation }: IndexProps) {
+  const [form, setForm] = useState({
+    email: '',
+    password: '',
+  });
+  const { login } = useAuth();
+
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 768;
   const isWeb = Platform.OS === "web";
+
+  const handleLogin = async () => {
+    if((form.email === '' || form.password === '')) {
+      // setModal({...modalData, visible: true, message: 'Please fill your email and password correctly.'});
+      console.warn('Please fill your email and password correctly.');
+    } else try {
+      // setModal({...modalData, visible: true, message: 'Connecting...', isLoading: true});
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Request timed out'));
+        }, 7000);
+      });
+
+      const response = await Promise.race(
+        [
+          fetch(`${API_URL}/auth/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(
+              {
+                email: form.email,
+                password: form.password
+              }
+          ),
+          })
+        ,
+          timeoutPromise
+        ]
+      );
+
+      if (response instanceof Response) {
+        const responseJson = await response.json();
+        if (responseJson.token) {
+          login(responseJson.token as string);
+          // setModal({...modalData, visible: false, message: 'Success!', isLoading: false});
+          console.log('Login successful:', responseJson);
+        } else {
+          // setModal({...modalData, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
+          console.warn(responseJson.message || 'An error occurred on the server.');
+        }
+      } else {
+        // setModal({...modalData, visible: true, isLoading: false, message: 'An error occurred, invalid server response.'});
+        console.warn('An error occurred, invalid server response.');
+      }
+    } catch (error) {
+      // setModal({...modalData, visible: true, isLoading: false, message: 'An error occurred, unable to connect the server.'});
+      console.error('An error occurred:', error);
+    }
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -42,35 +101,29 @@ export default function Login({ navigation }: IndexProps) {
       {/* Left Section */}
       {isLargeScreen && (
         <View style={styles.leftContainer}>
-          {/* Logo */}
-          <View style={styles.logoSection}>
-            <View style={styles.logoOuter}>
-              <View style={styles.logoCircle1} />
-              <View style={styles.logoCircle2} />
-            </View>
-            <View style={styles.logoText}>
-              <Text style={styles.logoTitle}>WEITNAH</Text>
-              <Text style={styles.logoSubtitle}>
-                SENANDUNG HARMONI DEKATKAN JARAK
+
+          <View
+            style={[{
+              flex: 1,
+              justifyContent: "center",
+            }]}>
+              
+            {/* Welcome Message */}
+            <View style={styles.welcomeSection}>
+              <Image
+                alt=""
+                style={styles.logoImage}
+                source={require('../../assets/images/logo_hd.png')}
+              />
+              <Text style={styles.heading}>
+                <Text style={styles.textBlue}>Hey </Text>
+                <Text style={styles.textPink}>There!</Text>
+              </Text>
+              <Text style={styles.subheading}>welcome back</Text>
+              <Text style={styles.description}>
+                You are just one step away to your feed
               </Text>
             </View>
-          </View>
-
-          {/* Welcome Message */}
-          <View style={styles.welcomeSection}>
-            <Image
-              alt=""
-              style={styles.logoImage}
-              source={require('../../assets/images/logo_hd.png')}
-            />
-            <Text style={styles.heading}>
-              <Text style={styles.textBlue}>Hey </Text>
-              <Text style={styles.textPink}>There!</Text>
-            </Text>
-            <Text style={styles.subheading}>welcome back</Text>
-            <Text style={styles.description}>
-              You are just one step away to your feed
-            </Text>
           </View>
 
           {/* Sign Up CTA */}
@@ -107,6 +160,7 @@ export default function Login({ navigation }: IndexProps) {
               style={styles.input}
               placeholderTextColor="#666"
               keyboardType="email-address"
+              onChangeText={email => setForm({ ...form, email })}
             />
           </View>
 
@@ -118,11 +172,18 @@ export default function Login({ navigation }: IndexProps) {
               style={styles.input}
               placeholderTextColor="#666"
               secureTextEntry
+              onChangeText={password => setForm({ ...form, password })}
             />
+            <TouchableOpacity
+              style={{ padding: 8 }}>
+              <Feather name="eye" size={20} color="#666" />
+            </TouchableOpacity>
           </View>
 
           {/* Sign In Button with Gradient */}
-          <TouchableOpacity style={styles.signInButton}>
+          <TouchableOpacity style={styles.signInButton}
+            onPress={handleLogin}
+          >
             <LinearGradient
               colors={["#3b82f6", "#9333ea", "#ec4899"]}
               start={[0, 0]}
