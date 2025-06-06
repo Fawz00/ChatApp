@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { AuthProvider, useAuth } from "./api/AuthProvider";
 
 import Dashboard from "./AppScreen/dashboard";
+import Index from "./AuthScreen/index";
 import Login from "./AuthScreen/login";
 import Register from './AuthScreen/register';
 
@@ -50,12 +51,13 @@ const MainNavigator = () => (
 
 const AuthNavigator = () => (
   <AuthStack.Navigator
-    initialRouteName="Log In"
+    initialRouteName="index"
     screenOptions={{
       headerShown: false,
     }}
   >
-    <AuthStack.Screen name="Log In" component={Login}/>
-    <AuthStack.Screen name="Register" component={Register}/>
+    <AuthStack.Screen name="index" component={Index}/>
+    <AuthStack.Screen name="login" component={Login}/>
+    <AuthStack.Screen name="register" component={Register}/>
   </AuthStack.Navigator>
 );

@@ -29,123 +29,55 @@ export default function Login({ navigation }: IndexProps) {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {isWeb && (
-        <style type="text/css">
-          {`
-        input:focus {
-          outline: none !important;
-        }
-          `}
-        </style>
-      )}
 
-      {/* Left Section */}
-      {isLargeScreen && (
         <View style={styles.leftContainer}>
-          {/* Logo */}
-          <View style={styles.logoSection}>
-            <View style={styles.logoOuter}>
-              <View style={styles.logoCircle1} />
-              <View style={styles.logoCircle2} />
-            </View>
-            <View style={styles.logoText}>
-              <Text style={styles.logoTitle}>WEITNAH</Text>
-              <Text style={styles.logoSubtitle}>
-                SENANDUNG HARMONI DEKATKAN JARAK
+          <View
+            style={[{
+              flex: 1,
+              justifyContent: "center",
+            }]}>
+              
+            {/* Welcome Message */}
+            <View style={styles.welcomeSection}>
+              <Image
+                alt=""
+                style={styles.logoImage}
+                source={require('../../assets/images/logo_hd.png')}
+              />
+              <Text style={styles.heading}>
+                <Text style={styles.textBlue}>Hey </Text>
+                <Text style={styles.textPink}>There!</Text>
+              </Text>
+              <Text style={styles.subheading}>welcome back</Text>
+              <Text style={styles.description}>
+                You are just one step away to your feed
               </Text>
             </View>
           </View>
 
-          {/* Welcome Message */}
-          <View style={styles.welcomeSection}>
-            <Image
-              alt=""
-              style={styles.logoImage}
-              source={require('../../assets/images/logo_hd.png')}
-            />
-            <Text style={styles.heading}>
-              <Text style={styles.textBlue}>Hey </Text>
-              <Text style={styles.textPink}>There!</Text>
-            </Text>
-            <Text style={styles.subheading}>welcome back</Text>
-            <Text style={styles.description}>
-              You are just one step away to your feed
-            </Text>
-          </View>
-
-          {/* Sign Up CTA */}
-          <View style={styles.signupSection}>
-            <Text style={styles.signupPrompt}>Don’t have an account?</Text>
-            <TouchableOpacity
-              style={styles.signupButton}
+          <View style={styles.formWrapper}>
+            {/* Sign Up Button */}
+            <TouchableOpacity style={styles.registerButton}
               onPress={() => navigation.navigate("register")}
             >
-              <Text style={styles.signupButtonText}>Sign Up</Text>
+                <Text style={styles.signInText}>SIGN UP</Text>
+            </TouchableOpacity>
+
+            {/* Sign In Button with Gradient */}
+            <TouchableOpacity style={styles.colorButton}
+              onPress={() => navigation.navigate("login")}
+            >
+              <LinearGradient
+                colors={["#3b82f6", "#9333ea", "#ec4899"]}
+                start={[0, 0]}
+                end={[1, 0]}
+                style={[styles.colorButton, { width: "100%" }]}
+              >
+                <Text style={styles.signInText}>SIGN IN</Text>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
-      )}
-
-      {/* Right Section */}
-      <LinearGradient
-        colors={["#dbeafe", "#fce7f3", "#f3e8ff"]}
-        start={[0, 0]}
-        end={[1, 1]}
-        style={[
-          styles.rightContainer,
-          isWeb && styles.rightContainerRounded,
-        ]}
-      >
-        <View style={styles.formWrapper}>
-          <Text style={styles.signInHeader}>SIGN IN</Text>
-
-          {/* Email */}
-          <View style={styles.inputWrapper}>
-            <Feather name="mail" size={20} color="#666" style={styles.icon} />
-            <TextInput
-              placeholder="Email"
-              style={styles.input}
-              placeholderTextColor="#666"
-              keyboardType="email-address"
-            />
-          </View>
-
-          {/* Password */}
-          <View style={styles.inputWrapper}>
-            <Feather name="lock" size={20} color="#666" style={styles.icon} />
-            <TextInput
-              placeholder="Password"
-              style={styles.input}
-              placeholderTextColor="#666"
-              secureTextEntry
-            />
-          </View>
-
-          {/* Sign In Button with Gradient */}
-          <TouchableOpacity style={styles.signInButton}>
-            <LinearGradient
-              colors={["#3b82f6", "#9333ea", "#ec4899"]}
-              start={[0, 0]}
-              end={[1, 0]}
-              style={[styles.signInButton, { width: "100%" }]}
-            >
-              <Text style={styles.signInText}>SIGN IN</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          {/* Footer */}
-          <View style={styles.footerLinks}>
-            <TouchableOpacity
-              onPress={() => navigation.navigate("register")}
-            >
-              <Text style={styles.footerLinkText}>Create an account</Text>
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Text style={styles.footerLinkText}>Forget Password?</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </LinearGradient>
     </ScrollView>
   );
 };
@@ -162,6 +94,7 @@ const styles = StyleSheet.create({
     padding: 24,
     justifyContent: "space-between",
     backgroundColor: "#fff",
+    alignItems: "center",
   },
   rightContainer: {
     flex: 1,
@@ -176,9 +109,9 @@ const styles = StyleSheet.create({
   logoImage: {
     marginTop: 24,
     alignSelf: 'center',
-    width: 1080/5,
-    height: 480/5,
-    marginBottom: 20,
+    width: 1080/4,
+    height: 480/4,
+    marginBottom: 40,
   },
   logoSection: {
     flexDirection: "row",
@@ -293,12 +226,18 @@ const styles = StyleSheet.create({
     height: 40,
     fontSize: 16,
   },
-  signInButton: {
-    marginTop: 20,
+  colorButton: {
     paddingVertical: 14,
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
+  },
+  registerButton: {
+    paddingVertical: 14,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#323232",
   },
   signInText: {
     color: "#fff",
