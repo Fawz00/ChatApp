@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { SimpleModal } from "../components/simple-modal";
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { API_URL, useAuth } from "../api/AuthProvider";
@@ -29,6 +30,12 @@ export default function Login({ navigation }: IndexProps) {
     email: '',
     password: '',
   });
+  const [getModal, setModal] = useState({
+    message: '',
+    isLoading: false,
+    visible: false,
+  });
+  const [secureText, setSecureText] = useState(true);
   const { login } = useAuth();
 
   const { width } = useWindowDimensions();
@@ -37,10 +44,10 @@ export default function Login({ navigation }: IndexProps) {
 
   const handleLogin = async () => {
     if((form.email === '' || form.password === '')) {
-      // setModal({...modalData, visible: true, message: 'Please fill your email and password correctly.'});
+      setModal({...getModal, visible: true, message: 'Please fill your email and password correctly.'});
       console.warn('Please fill your email and password correctly.');
     } else try {
-      // setModal({...modalData, visible: true, message: 'Connecting...', isLoading: true});
+      setModal({...getModal, visible: true, message: 'Connecting...', isLoading: true});
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => {
           reject(new Error('Request timed out'));
@@ -70,18 +77,18 @@ export default function Login({ navigation }: IndexProps) {
         const responseJson = await response.json();
         if (responseJson.token) {
           login(responseJson.token as string);
-          // setModal({...modalData, visible: false, message: 'Success!', isLoading: false});
+          setModal({...getModal, visible: false, message: 'Success!', isLoading: false});
           console.log('Login successful:', responseJson);
         } else {
-          // setModal({...modalData, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
+          setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
           console.warn(responseJson.message || 'An error occurred on the server.');
         }
       } else {
-        // setModal({...modalData, visible: true, isLoading: false, message: 'An error occurred, invalid server response.'});
+        setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, invalid server response.'});
         console.warn('An error occurred, invalid server response.');
       }
     } catch (error) {
-      // setModal({...modalData, visible: true, isLoading: false, message: 'An error occurred, unable to connect the server.'});
+      setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, unable to connect the server.'});
       console.error('An error occurred:', error);
     }
   }
@@ -97,6 +104,14 @@ export default function Login({ navigation }: IndexProps) {
           `}
         </style>
       )}
+
+      {/* Modal Popup for Error Messages */}
+      <SimpleModal
+        visible={getModal.visible}
+        message={getModal.message}
+        isLoading={getModal.isLoading}
+        onClose={() => setModal({ ...getModal, visible: false })}
+      />
 
       {/* Left Section */}
       {isLargeScreen && (
@@ -171,12 +186,18 @@ export default function Login({ navigation }: IndexProps) {
               placeholder="Password"
               style={styles.input}
               placeholderTextColor="#666"
-              secureTextEntry
+              secureTextEntry={secureText}
               onChangeText={password => setForm({ ...form, password })}
             />
             <TouchableOpacity
-              style={{ padding: 8 }}>
-              <Feather name="eye" size={20} color="#666" />
+              style={{ padding: 8 }}
+              onPress={() => setSecureText(!secureText)}
+            >
+              {secureText ?
+                <Feather name="eye" size={20} color="#666" />
+                :
+                <Feather name="eye-off" size={20} color="#666" />
+              }
             </TouchableOpacity>
           </View>
 
