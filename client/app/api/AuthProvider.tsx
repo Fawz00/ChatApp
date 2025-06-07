@@ -3,7 +3,7 @@ import { PropsWithChildren } from 'react';
 import { Storage } from 'expo-storage'
 
 //#region Constants
-export const API_URL = 'http://192.168.245.213:5000/api';
+export const API_URL = 'http://localhost:5000/api';
 
 interface AuthContextType {
     token: string | null;

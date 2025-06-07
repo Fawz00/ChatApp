@@ -45,7 +45,6 @@ export default function Login({ navigation }: IndexProps) {
   const handleLogin = async () => {
     if((form.email === '' || form.password === '')) {
       setModal({...getModal, visible: true, message: 'Please fill your email and password correctly.'});
-      console.warn('Please fill your email and password correctly.');
     } else try {
       setModal({...getModal, visible: true, message: 'Connecting...', isLoading: true});
       const timeoutPromise = new Promise((_, reject) => {
@@ -78,14 +77,11 @@ export default function Login({ navigation }: IndexProps) {
         if (responseJson.token) {
           login(responseJson.token as string);
           setModal({...getModal, visible: false, message: 'Success!', isLoading: false});
-          console.log('Login successful:', responseJson);
         } else {
           setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
-          console.warn(responseJson.message || 'An error occurred on the server.');
         }
       } else {
         setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, invalid server response.'});
-        console.warn('An error occurred, invalid server response.');
       }
     } catch (error) {
       setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, unable to connect the server.'});
@@ -175,6 +171,7 @@ export default function Login({ navigation }: IndexProps) {
               style={styles.input}
               placeholderTextColor="#666"
               keyboardType="email-address"
+              autoCapitalize="none"
               onChangeText={email => setForm({ ...form, email })}
             />
           </View>
@@ -222,7 +219,9 @@ export default function Login({ navigation }: IndexProps) {
             >
               <Text style={styles.footerLinkText}>Create an account</Text>
             </TouchableOpacity>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("forgot_password")}
+            >
               <Text style={styles.footerLinkText}>Forget Password?</Text>
             </TouchableOpacity>
           </View>

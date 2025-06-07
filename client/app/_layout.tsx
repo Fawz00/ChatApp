@@ -8,6 +8,7 @@ import Dashboard from "./AppScreen/dashboard";
 import Index from "./AuthScreen/index";
 import Login from "./AuthScreen/login";
 import Register from './AuthScreen/register';
+import ForgotPassword from './AuthScreen/forgot_password';
 
 const AuthStack = createNativeStackNavigator();
 const AppDrawer = createDrawerNavigator();
@@ -59,5 +60,6 @@ const AuthNavigator = () => (
     <AuthStack.Screen name="index" component={Index}/>
     <AuthStack.Screen name="login" component={Login}/>
     <AuthStack.Screen name="register" component={Register}/>
+    <AuthStack.Screen name="forgot_password" component={ForgotPassword}/>
   </AuthStack.Navigator>
 );
