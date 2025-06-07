@@ -1,6 +1,6 @@
 # WeitNah
 
-Weitnah created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Weitnah created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app). Cross platform is supported.
 
 ## Get started
 

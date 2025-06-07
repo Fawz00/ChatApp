@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, SetStateAction } from 'react';
 import { PropsWithChildren } from 'react';
 import { Storage } from 'expo-storage'
+import { Platform } from 'react-native';
 
 //#region Constants
 export const API_URL = 'http://localhost:5000/api';
@@ -28,21 +29,39 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
             const account: StorageAccount = {
                 token: token
             };
-            await Storage.setItem({
-                key: 'account',
-                value: JSON.stringify(account)
-            });
+
+            if(Platform.OS === 'web') {
+                // For web, use localStorage
+                localStorage.setItem('account', JSON.stringify(account));
+                return;
+            } else {
+                // For mobile, use Expo Storage
+                await Storage.setItem({
+                    key: 'account',
+                    value: JSON.stringify(account)
+                });
+            }
         } catch(e) {
             console.error(e);
         }
     }
     const loadAccount = async () => {
         try{
-            const item = await Storage.getItem({ key: 'account' });
-            const data = item ? JSON.parse(item) as StorageAccount : null;
-
-            if(data) {
-                setToken(data.token);
+            if(Platform.OS === 'web') {
+                // For web, use localStorage
+                const item = localStorage.getItem('account');
+                const data = item ? JSON.parse(item) as StorageAccount : null;
+                if(data) {
+                    setToken(data.token);
+                }
+                return;
+            } else {
+                // For mobile, use Expo Storage
+                const item = await Storage.getItem({ key: 'account' });
+                const data = item ? JSON.parse(item) as StorageAccount : null;
+                if(data) {
+                    setToken(data.token);
+                }
             }
         } catch(e) {
             console.error(e);
