@@ -4,7 +4,7 @@ import { Storage } from 'expo-storage'
 import { Platform } from 'react-native';
 
 //#region Constants
-export const API_URL = 'http://localhost:5000/api';
+export const API_URL = 'http://192.168.245.8:5000/api';
 
 interface AuthContextType {
     token: string | null;

@@ -37,7 +37,7 @@ const BaseNavigator = () => {
 
 const MainNavigator = () => (
     <AppDrawer.Navigator
-      initialRouteName="Dashboard"
+      initialRouteName="dashboard"
       screenOptions={({navigation}) => {
         return {
           drawerStyle: {
@@ -46,7 +46,7 @@ const MainNavigator = () => (
         };
       }}
     >
-      <AppDrawer.Screen name="Dashboard" component={Dashboard} />
+      <AppDrawer.Screen name="dashboard" component={Dashboard} />
     </AppDrawer.Navigator>
 );
 

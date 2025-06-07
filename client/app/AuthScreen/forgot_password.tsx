@@ -22,7 +22,7 @@ interface IndexProps {
   navigation: AuthScreenNavigationProp;
 }
 
-const { width } = Dimensions.get("window");
+const isWeb = Platform.OS === "web";
 
 export default function ForgotPassword({ navigation }: IndexProps) {
   const [form, setForm] = useState({
@@ -39,11 +39,14 @@ export default function ForgotPassword({ navigation }: IndexProps) {
   const [secureText, setSecureText] = useState(true);
   const [repeatSecureText, setRepeatSecureText] = useState(true);
   const [currentStep, setStep] = useState(0);
-  const { login } = useAuth();
 
-  const { width } = useWindowDimensions();
-  const isLargeScreen = width >= 768;
-  const isWeb = Platform.OS === "web";
+  let screenWidth = Dimensions.get("window").width;
+  const window = useWindowDimensions();
+  const isLargeScreen = screenWidth >= 768;
+
+  React.useEffect(() => {
+    screenWidth = window.width;
+  }, [window.width, window.height]);
 
   const handleConfirm = (state: number) => {
     switch (state) {

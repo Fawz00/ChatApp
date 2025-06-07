@@ -20,12 +20,16 @@ interface IndexProps {
   navigation: AuthScreenNavigationProp;
 }
 
-const { width } = Dimensions.get("window");
+const isWeb = Platform.OS === "web";
 
 export default function Login({ navigation }: IndexProps) {
-  const { width } = useWindowDimensions();
-  const isLargeScreen = width >= 768;
-  const isWeb = Platform.OS === "web";
+  let screenWidth = Dimensions.get("window").width;
+  const window = useWindowDimensions();
+  const isLargeScreen = screenWidth >= 768;
+
+  React.useEffect(() => {
+    screenWidth = window.width;
+  }, [window.width, window.height]);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
