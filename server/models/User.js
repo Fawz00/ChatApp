@@ -13,10 +13,11 @@ const userSchema = new mongoose.Schema({
     required: true,
     minlength: 6
   },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
+  username: { type: String },
+  profilePhoto: { type: String }, // path
+  bannerPhoto: { type: String }, // path
+  description: { type: String },
+  phoneNumber: { type: String },
   resetPasswordToken: String,
   resetPasswordExpires: Date
 }, { timestamps: true });
