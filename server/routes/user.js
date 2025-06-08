@@ -4,12 +4,14 @@ const auth = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
 const {
-  getProfile,
+  getSelfProfile,
+  getUserProfile,
   editProfile,
   deleteAccount
 } = require('../controllers/authController');
 
-router.get('/me', auth, getProfile);
+router.get('/:userid', auth, getUserProfile);
+router.get('/me', auth, getSelfProfile);
 
 router.put(
   '/me',

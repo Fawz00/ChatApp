@@ -59,7 +59,7 @@ exports.forgotPassword = async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ msg: 'Email not found' });
+    if (!user) return res.status(404).json({ message: 'Email not found' });
 
     const token = crypto.randomBytes(32).toString('hex');
     user.resetPasswordToken = token;
@@ -77,10 +77,9 @@ exports.forgotPassword = async (req, res) => {
     `;
 
     await sendEmail(user.email, 'Reset Password - Chat App', html);
-    res.json({ msg: 'Email has been sent to reset your password' });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    res.json({ message: 'Email has been sent to reset your password' });
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 
@@ -94,7 +93,7 @@ exports.resetPassword = async (req, res) => {
       resetPasswordExpires: { $gt: Date.now() }
     });
 
-    if (!user) return res.status(400).json({ msg: 'Token invalid or expired' });
+    if (!user) return res.status(400).json({ message: 'Token invalid or expired' });
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
@@ -102,22 +101,33 @@ exports.resetPassword = async (req, res) => {
     user.resetPasswordExpires = undefined;
     await user.save();
 
-    res.json({ msg: 'Password has been reset successfully' });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    res.json({ message: 'Password has been reset successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 
-exports.getProfile = async (req, res) => {
+exports.getSelfProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user).select('-password -resetPasswordToken -resetPasswordExpires');
-    if (!user) return res.status(404).json({ msg: 'User not found' });
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
     res.json(user);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
+  }
+};
+
+exports.getUserProfile = async (req, res) => {
+  const { userid } = req.params;
+
+  try {
+    const user = await User.findById(userid).select('-password -resetPasswordToken -resetPasswordExpires');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 
@@ -139,9 +149,8 @@ exports.editProfile = async (req, res) => {
 
     const updatedUser = await User.findByIdAndUpdate(req.user, updates, { new: true }).select('-password');
     res.json(updatedUser);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 
@@ -177,9 +186,8 @@ exports.deleteAccount = async (req, res) => {
       }
     );
 
-    res.json({ msg: 'Account deleted successfully' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
+    res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 };

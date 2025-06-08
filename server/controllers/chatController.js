@@ -18,14 +18,13 @@ exports.createChat = async (req, res) => {
       description: isGroup ? description : undefined,
       groupPhoto: isGroup && groupPhoto ? groupPhoto : undefined,
       participants: uniqueParticipants,
-      admins: isGroup ? [creator] : [] // creator adalah admin pertama
+      admins: isGroup ? [creator] : [] // creator is admin for group chats
     });
 
     await chat.save();
     res.status(201).json(chat);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 
@@ -34,17 +33,21 @@ exports.getChatDetail = async (req, res) => {
   const { chatId } = req.params;
 
   try {
+    if (!chatId) {
+      return res.status(400).json({ message: 'Chat ID is required' });
+    }
+
     const chat = await Chat.findById(chatId)
-      .populate('participants', 'email') // tambahkan fields lain sesuai user model
+      .populate('participants', 'email')
       .populate('lastMessage');
 
     if (!chat) {
-      return res.status(404).json({ msg: 'Chat tidak ditemukan' });
+      return res.status(404).json({ message: 'Chat tidak ditemukan' });
     }
 
     // Cek apakah user adalah peserta
     if (!chat.participants.some(u => u._id.toString() === req.user.toString())) {
-      return res.status(403).json({ msg: 'Anda tidak diizinkan mengakses chat ini' });
+      return res.status(403).json({ message: 'Anda tidak diizinkan mengakses chat ini' });
     }
 
     res.json({
@@ -56,9 +59,8 @@ exports.getChatDetail = async (req, res) => {
       participants: chat.participants,
       lastMessage: chat.lastMessage
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 
@@ -71,15 +73,15 @@ exports.editGroupChat = async (req, res) => {
   try {
     const chat = await Chat.findById(chatId);
     if (!chat || !chat.isGroup) {
-      return res.status(400).json({ msg: 'Chat tidak valid atau bukan grup' });
+      return res.status(400).json({ message: 'Chat not found or not a group chat' });
     }
 
     if (!chat.admins.includes(req.user.toString())) {
-      return res.status(403).json({ msg: 'Hanya admin yang boleh mengedit grup' });
+      return res.status(403).json({ message: 'Only admins can edit group details' });
     }
 
     if (!chat.participants.includes(req.user.toString())) {
-      return res.status(403).json({ msg: 'Anda bukan anggota grup ini' });
+      return res.status(403).json({ message: 'You are not a participant of this group' });
     }
 
     if (name) chat.name = name;
@@ -87,10 +89,9 @@ exports.editGroupChat = async (req, res) => {
     if (groupPhoto) chat.groupPhoto = groupPhoto;
 
     await chat.save();
-    res.json({ msg: 'Grup berhasil diperbarui', chat });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
+    res.json({ message: 'Group chat details updated successfully', chat });
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 
@@ -100,18 +101,17 @@ exports.deleteChat = async (req, res) => {
 
   try {
     const chat = await Chat.findById(chatId);
-    if (!chat) return res.status(404).json({ msg: 'Chat tidak ditemukan' });
+    if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
     // Validasi user adalah peserta
     if (!chat.participants.includes(req.user.toString())) {
-      return res.status(403).json({ msg: 'Anda tidak bisa menghapus chat ini' });
+      return res.status(403).json({ message: 'You do not have permission to delete this chat' });
     }
 
     await Chat.findOneAndDelete({ _id: chatId });
-    res.json({ msg: 'Chat dan semua pesan terkait telah dihapus' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error' );
+    res.json({ message: 'Chat deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 
@@ -124,12 +124,12 @@ exports.sendMessage = async (req, res) => {
     // Validate chat exists
     const chat = await Chat.findById(chatId);
     if (!chat) {
-      return res.status(404).json({ msg: 'Chat tidak ditemukan atau telah dihapus' });
+      return res.status(404).json({ message: 'Chat not found' });
     }
 
     // Validate user is part of the chat
     if (!chat.participants.includes(req.user.toString())) {
-      return res.status(403).json({ msg: 'Anda tidak memiliki akses ke chat ini' });
+      return res.status(403).json({ message: 'You are not a participant of this chat' });
     }
 
     // Create new message
@@ -148,9 +148,8 @@ exports.sendMessage = async (req, res) => {
     await chat.save();
 
     res.status(201).json(message);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 
@@ -161,17 +160,17 @@ exports.editMessage = async (req, res) => {
 
   try {
     const message = await Message.findById(messageId);
-    if (!message) return res.status(404).json({ msg: 'Pesan tidak ditemukan' });
+    if (!message) return res.status(404).json({ message: 'Chat not found' });
 
     if (message.sender.toString() !== req.user.toString()) {
-      return res.status(403).json({ msg: 'Tidak boleh mengedit pesan orang lain' });
+      return res.status(403).json({ message: 'Cannot edit someone else\'s message' });
     }
 
     message.content = content;
     message.updatedAt = new Date();
     await message.save();
 
-    res.json({ msg: 'Pesan berhasil diubah', message });
+    res.json({ message: 'Chat message updated successfully', message });
   } catch (err) {
     console.error(err);
     res.status(500).send('Server error');
@@ -188,11 +187,11 @@ exports.getMessages = async (req, res) => {
     // Validate chat exists and user is part of it
     const chat = await Chat.findById(chatId);
     if (!chat) {
-      return res.status(404).json({ msg: 'Chat tidak ditemukan' });
+      return res.status(404).json({ message: 'Chat not found' });
     }
 
     if (!chat.participants.includes(req.user.toString())) {
-      return res.status(403).json({ msg: 'Anda tidak diizinkan melihat pesan chat ini' });
+      return res.status(403).json({ message: 'You are not a participant of this chat' });
     }
 
     // Get messages for the chat
@@ -219,14 +218,14 @@ exports.deleteMessage = async (req, res) => {
 
   try {
     const message = await Message.findById(messageId);
-    if (!message) return res.status(404).json({ msg: 'Pesan tidak ditemukan' });
+    if (!message) return res.status(404).json({ message: 'Message not found' });
 
     if (message.sender.toString() !== req.user.toString()) {
-      return res.status(403).json({ msg: 'Tidak boleh menghapus pesan orang lain' });
+      return res.status(403).json({ message: 'Cannot delete someone else\'s message' });
     }
 
     await message.deleteOne();
-    res.json({ msg: 'Pesan berhasil dihapus' });
+    res.json({ message: 'Message successfully deleted' });
   } catch (err) {
     console.error(err);
     res.status(500).send('Server error');
