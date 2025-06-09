@@ -15,6 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 const isWeb = Platform.OS === "web";
 
 export default function ChatScreen() {
+  const [chatScrollView, setChatScrollView] = useState<ScrollView | null>(null);
+
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([
     { id: 1, text: "hello Jonathan.", time: "15 May, 18:15", from: "Jodye" },
@@ -30,8 +32,15 @@ export default function ChatScreen() {
     screenWidth = window.width;
   }, [window.width, window.height]);
 
+  React.useEffect(() => {
+    if (chatScrollView) {
+      chatScrollView.scrollToEnd({ animated: true });
+    }
+  }, [messages.length]);
+
   const handleSend = () => {
     if (!message.trim()) return;
+
     const newMsg = {
       id: messages.length + 1,
       text: message,
@@ -44,6 +53,31 @@ export default function ChatScreen() {
 
   return (
     <View style={[styles.container, !isLargeScreen && styles.containerMobile]}>
+      {isWeb && (
+        <style type="text/css">
+          {`
+            ::-webkit-scrollbar {
+              width: 8px;
+              height: 8px;
+            }
+
+            ::-webkit-scrollbar-thumb {
+              background-color: rgba(100, 100, 100, 0.6);
+              border-radius: 4px;
+            }
+
+            ::-webkit-scrollbar-thumb:hover {
+              background-color: rgba(100, 100, 100, 0.8);
+            }
+
+            ::-webkit-scrollbar-track {
+              background: transparent;
+            }
+
+          `}
+        </style>
+      )}
+      
       {isLargeScreen && (
         <View style={styles.sidebar}>
           <Text style={styles.logo}>Chat</Text>
@@ -57,7 +91,7 @@ export default function ChatScreen() {
             <Text style={styles.teamLabel}>Teams</Text>
             <View style={styles.teamsRow}>
               {['G', 'S', 'U', 'F', 'A', 'A', 'R', 'D'].map((t, i) => (
-                <TouchableOpacity key={i}>
+                <TouchableOpacity key={i} style={styles.teamButton}>
                   <View style={styles.teamCircle}>
                     <Text style={styles.teamText}>{t}</Text>
                   </View>
@@ -97,7 +131,12 @@ export default function ChatScreen() {
           </View>
         </View>
 
-        <ScrollView style={styles.chatMessages}>
+        <ScrollView
+          style={styles.chatMessages}
+          ref={ref => {
+            setChatScrollView(ref);
+          }}
+        >
           {messages.map(msg => (
             <View
               key={msg.id}
@@ -111,10 +150,14 @@ export default function ChatScreen() {
 
         <View style={styles.inputBar}>
           <TextInput
-            style={styles.inputField}
+            style={[styles.inputField, {height: 48}]}
             placeholder="Type here"
             value={message}
+            multiline
             onChangeText={setMessage}
+            onSubmitEditing={handleSend}
+            returnKeyType="send"
+            blurOnSubmit={false}
           />
           <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
             <Text style={styles.sendButtonText}>Send</Text>
@@ -191,7 +234,7 @@ const styles = StyleSheet.create({
   teamsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 4,
     justifyContent: 'center',
   },
   teamCircle: {
@@ -201,7 +244,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#9ca3af',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 8,
+  },
+  teamButton: {
+    padding: 6,
   },
   teamText: {
     color: '#ffffff',
@@ -242,7 +287,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     paddingHorizontal: 4,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f3f3f3',
   },
   chatHeader: {
     flexDirection: 'row',
