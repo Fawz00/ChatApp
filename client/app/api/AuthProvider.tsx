@@ -4,12 +4,13 @@ import { Storage } from 'expo-storage'
 import { Platform } from 'react-native';
 
 //#region Constants
-export const API_URL = 'http://192.168.245.8:5000/api';
+export const API_URL = 'http://192.168.100.7:5000/api';
 
 interface AuthContextType {
     token: string | null;
     login: (newToken: string) => void;
     logout: () => void;
+    validate: () => Promise<string | undefined>;
 }
 interface StorageAccount {
     token: string;
@@ -78,8 +79,42 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
         setToken(null);
     };
 
+    const validate = async (): Promise<string | undefined> => {
+        try {
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => {
+                    reject(new Error('Request timed out'));
+                }, 7000);
+            });
+    
+            const response = await Promise.race(
+            [
+                fetch(`${API_URL}/user/me`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                    }
+                })
+            , timeoutPromise]
+            );
+    
+            if (response instanceof Response) {
+                const responseJson = await response.json();
+            if (response.ok) {
+                return responseJson._id;
+            } else {
+                console.warn(responseJson.message || 'An error occurred on the server.');
+            }
+            } else {
+                console.warn('An error occurred, invalid server response.');
+            }
+        } catch (error) {
+            console.error('An error occurred:', error);
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ token, login, logout }}>
+        <AuthContext.Provider value={{ token, validate, login, logout }}>
             {children}
         </AuthContext.Provider>
     );

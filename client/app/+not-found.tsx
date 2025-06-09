@@ -22,7 +22,7 @@ interface IndexProps {
 
 const isWeb = Platform.OS === "web";
 
-export default function Index({ navigation }: IndexProps) {
+export default function NotFoundScreen({ navigation }: IndexProps) {
   let screenWidth = Dimensions.get("window").width;
   const window = useWindowDimensions();
   const isLargeScreen = screenWidth >= 768;
@@ -46,40 +46,17 @@ export default function Index({ navigation }: IndexProps) {
               <Image
                 alt=""
                 style={styles.logoImage}
-                source={require('../../assets/images/logo_hd.png')}
+                source={require('../assets/images/logo_hd.png')}
               />
               <Text style={styles.heading}>
-                <Text style={styles.textBlue}>Hey </Text>
-                <Text style={styles.textPink}>There!</Text>
+                <Text style={styles.textBlue}>Page </Text>
+                <Text style={styles.textPink}>Not Found</Text>
               </Text>
-              <Text style={styles.subheading}>welcome back</Text>
+              <Text style={styles.subheading}>nice try!</Text>
               <Text style={styles.description}>
-                You are just one step away to your feed
+                You are just find another page that does not exist.
               </Text>
             </View>
-          </View>
-
-          <View style={styles.formWrapper}>
-            {/* Sign Up Button */}
-            <TouchableOpacity style={styles.registerButton}
-              onPress={() => navigation.navigate("register")}
-            >
-                <Text style={styles.signInText}>SIGN UP</Text>
-            </TouchableOpacity>
-
-            {/* Sign In Button with Gradient */}
-            <TouchableOpacity style={styles.colorButton}
-              onPress={() => navigation.navigate("login")}
-            >
-              <LinearGradient
-                colors={["#3b82f6", "#9333ea", "#ec4899"]}
-                start={[0, 0]}
-                end={[1, 0]}
-                style={[styles.colorButton, { width: "100%" }]}
-              >
-                <Text style={styles.signInText}>SIGN IN</Text>
-              </LinearGradient>
-            </TouchableOpacity>
           </View>
         </View>
     </ScrollView>

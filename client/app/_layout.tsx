@@ -9,6 +9,7 @@ import Index from "./AuthScreen/index";
 import Login from "./AuthScreen/login";
 import Register from './AuthScreen/register';
 import ForgotPassword from './AuthScreen/forgot_password';
+import NotFoundScreen from './+not-found';
 
 const AuthStack = createNativeStackNavigator();
 const AppDrawer = createDrawerNavigator();
@@ -22,7 +23,6 @@ export default function RootLayout() {
 }
 
 const BaseNavigator = () => {
-  console.log("BaseNavigator");
   const { token } = useAuth();
   if(token) {
     return (

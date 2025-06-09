@@ -11,32 +11,194 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
+import { API_URL, useAuth } from "../api/AuthProvider";
+import { SimpleModal } from "../components/simple-modal";
 
 const isWeb = Platform.OS === "web";
 
+interface ChatData {
+  _id: string;
+  name?: string;
+  description?: String,
+  groupPhoto?: String,
+  isGroup: boolean;
+  participants: string[];
+  admins: string[];
+  createdAt: string;
+  updatedAt: string;
+  lastMessage: string[];
+}
+interface UserData {
+  _id: string;
+  email: string;
+  username?: string;
+  profilePhoto?: string;
+  bannerPhoto?: string;
+  description?: string;
+  phoneNumber?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+interface MessageData {
+  _id: string;
+  chat: string;
+  sender: UserData;
+  content: string;
+  media?: string;
+  type: 'text' | 'image' | 'file';
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function ChatScreen() {
+  const [getModal, setModal] = useState({
+    message: '',
+    isLoading: false,
+    visible: false,
+  });
+  const { token, validate } = useAuth();
+  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
   const [chatScrollView, setChatScrollView] = useState<ScrollView | null>(null);
+  const [groupList, setGroupList] = useState<ChatData[]>([]);
+  const [privateChatList, setPrivateChatList] = useState<ChatData[]>([]);
+  const [loadedChat, setLoadedChat] = useState('');
 
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([
-    { id: 1, text: "hello Jonathan.", time: "15 May, 18:15", from: "Jodye" },
-    { id: 2, text: "Hey, how is going? Everything is fine?", time: "15 May, 18:17", from: "Jodye" },
-    { id: 3, text: "hello Jodye, I’m fine...", time: "15 May, 18:27", from: "Jonathan" }
-  ]);
+  const [messages, setMessages] = useState<MessageData[]>([]);
 
   let screenWidth = Dimensions.get("window").width;
   const window = useWindowDimensions();
   const isLargeScreen = screenWidth >= 768;
 
+  // On load, validate the token
+  React.useEffect(() => {
+    const validateToken = async () => {
+      try {
+        const userId = await validate();
+        setCurrentUserId(userId);
+      } catch (error) {
+        console.error('Token validation failed:', error);
+        setModal({
+          message: `An error occurred, unable to connect the server.\n${error instanceof Error ? error.message : 'Unknown error'}`,
+          isLoading: false,
+          visible: true,
+        });
+      }
+    };
+    validateToken();
+  }, []);
+
+  // On window resize, update the screen width
   React.useEffect(() => {
     screenWidth = window.width;
   }, [window.width, window.height]);
+
+  // On chat list change, fetch the chat list
+  React.useEffect(() => {
+    handleGetChatList(true);
+    handleGetChatList(false);
+  }, [groupList.length, privateChatList.length]);
+
+  // On loaded chat change, fetch the messages for the selected chat
+  React.useEffect(() => {
+    
+  }, [loadedChat]);
 
   React.useEffect(() => {
     if (chatScrollView) {
       chatScrollView.scrollToEnd({ animated: true });
     }
   }, [messages.length]);
+
+
+  // ====================================================
+  // API zone
+  // ====================================================
+  // Fetch chat list for groups or private chats
+  const handleGetChatList = async (isGroup: boolean) => {
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Request timed out'));
+        }, 7000);
+      });
+
+      const params = new URLSearchParams({
+        isGroup: isGroup.toString(),
+        sortBy: "updatedAt",
+      });
+
+      const response = await Promise.race(
+        [
+          fetch(`${API_URL}/chat/me/all?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            }
+          })
+        , timeoutPromise]
+      );
+
+      if (response instanceof Response) {
+        const responseJson = await response.json();
+        if (response.ok) {
+          if(isGroup) {
+            setGroupList(responseJson as ChatData[]);
+          } else {
+            setPrivateChatList(responseJson as ChatData[]);
+          }
+        } else {
+          setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
+        }
+      } else {
+        setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, invalid server response.'});
+      }
+    } catch (error) {
+      setModal({...getModal, visible: true, isLoading: false, message: `An error occurred, unable to connect the server.\n${error instanceof Error ? error.message : 'Unknown error'}`});
+      console.error('An error occurred:', error);
+    }
+  }
+
+  // Handle load chat messages
+  const handleLoadChatMessages = async (chatId: string) => {
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Request timed out'));
+        }, 7000);
+      });
+
+      const params = new URLSearchParams({
+        start: "0",
+        limit: "0",
+      });
+
+      const response = await Promise.race(
+        [
+          fetch(`${API_URL}/chat/me/all?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            }
+          })
+        , timeoutPromise]
+      );
+
+      if (response instanceof Response) {
+        const responseJson = await response.json();
+        if (response.ok) {
+          setMessages(responseJson as MessageData[]);
+        } else {
+          setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
+        }
+      } else {
+        setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, invalid server response.'});
+      }
+    } catch (error) {
+      setModal({...getModal, visible: true, isLoading: false, message: `An error occurred, unable to connect the server.\n${error instanceof Error ? error.message : 'Unknown error'}`});
+      console.error('An error occurred:', error);
+    }
+  }
 
   const handleSend = () => {
     if (!message.trim()) return;
@@ -47,7 +209,8 @@ export default function ChatScreen() {
       time: new Date().toLocaleTimeString(),
       from: "Jonathan",
     };
-    setMessages([...messages, newMsg]);
+    // Handle POST request to send the message here
+    // Not implemented yet.
     setMessage("");
   };
 
@@ -77,6 +240,14 @@ export default function ChatScreen() {
           `}
         </style>
       )}
+
+      {/* Modal Popup for Error Messages */}
+      <SimpleModal
+        visible={getModal.visible}
+        message={getModal.message}
+        isLoading={getModal.isLoading}
+        onClose={() => setModal({ ...getModal, visible: false })}
+      />
       
       {isLargeScreen && (
         <View style={styles.sidebar}>
@@ -90,12 +261,18 @@ export default function ChatScreen() {
           <View style={styles.teamContainer}>
             <Text style={styles.teamLabel}>Teams</Text>
             <View style={styles.teamsRow}>
-              {['G', 'S', 'U', 'F', 'A', 'A', 'R', 'D'].map((t, i) => (
-                <TouchableOpacity key={i} style={styles.teamButton}>
+              {groupList.map((val, i) => (
+                <TouchableOpacity key={i} style={styles.teamButton}
+                  onPress={() => {
+                    if (loadedChat !== val._id) {
+                      setLoadedChat(val._id);
+                    }
+                  }}
+                >
                   <View style={styles.teamCircle}>
-                    <Text style={styles.teamText}>{t}</Text>
+                    <Text style={styles.teamText}>{val.name?.charAt(0) || "_"}</Text>
                   </View>
-                  <Text style={styles.teamName}>{`Team ${i + 1}`}</Text>
+                  <Text style={styles.teamName}>{val.name || "Noname"}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -139,11 +316,11 @@ export default function ChatScreen() {
         >
           {messages.map(msg => (
             <View
-              key={msg.id}
-              style={[styles.messageBubble, msg.from === "Jonathan" ? styles.myMessage : styles.otherMessage]}
+              key={msg._id}
+              style={[styles.messageBubble, msg.sender._id === currentUserId ? styles.myMessage : styles.otherMessage]}
             >
-              <Text style={styles.messageText}>{msg.text}</Text>
-              <Text style={styles.messageTime}>{msg.time}</Text>
+              <Text style={styles.messageText}>{msg.content}</Text>
+              <Text style={styles.messageTime}>{msg.updatedAt}</Text>
             </View>
           ))}
         </ScrollView>
