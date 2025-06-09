@@ -4,7 +4,7 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { AuthProvider, useAuth } from "./api/AuthProvider";
 
-import Dashboard from "./AppScreen/dashboard";
+import ChatScreen from "./AppScreen/Chat";
 import Index from "./AuthScreen/index";
 import Login from "./AuthScreen/login";
 import Register from './AuthScreen/register';
@@ -37,16 +37,16 @@ const BaseNavigator = () => {
 
 const MainNavigator = () => (
     <AppDrawer.Navigator
-      initialRouteName="dashboard"
+      initialRouteName="chat"
       screenOptions={({navigation}) => {
         return {
           drawerStyle: {
-            width: Dimensions.get('window').width * 0.75,
+            width: 400,
           },
         };
       }}
     >
-      <AppDrawer.Screen name="dashboard" component={Dashboard} />
+      <AppDrawer.Screen name="chat" component={ChatScreen} />
     </AppDrawer.Navigator>
 );
 

@@ -6,11 +6,45 @@ import { Platform } from 'react-native';
 //#region Constants
 export const API_URL = 'http://192.168.100.7:5000/api';
 
+export interface ChatScheme {
+  _id: string;
+  name?: string;
+  description?: String,
+  groupPhoto?: String,
+  isGroup: boolean;
+  participants: UserScheme[];
+  admins: UserScheme[];
+  createdAt: string;
+  updatedAt: string;
+  lastMessage: MessageScheme | undefined;
+}
+export interface UserScheme {
+  _id: string;
+  email: string;
+  username?: string;
+  profilePhoto?: string;
+  bannerPhoto?: string;
+  description?: string;
+  phoneNumber?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+export interface MessageScheme {
+  _id: string;
+  chat: string;
+  sender: UserScheme;
+  content: string;
+  media?: string;
+  type: 'text' | 'image' | 'file';
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface AuthContextType {
     token: string | null;
     login: (newToken: string) => void;
     logout: () => void;
-    validate: () => Promise<string | undefined>;
+    validate: () => Promise<UserScheme | undefined>;
 }
 interface StorageAccount {
     token: string;
@@ -79,7 +113,7 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
         setToken(null);
     };
 
-    const validate = async (): Promise<string | undefined> => {
+    const validate = async (): Promise<UserScheme | undefined> => {
         try {
             const timeoutPromise = new Promise((_, reject) => {
                 setTimeout(() => {
@@ -101,7 +135,7 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
             if (response instanceof Response) {
                 const responseJson = await response.json();
             if (response.ok) {
-                return responseJson._id;
+                return responseJson as UserScheme;
             } else {
                 console.warn(responseJson.message || 'An error occurred on the server.');
             }

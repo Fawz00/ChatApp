@@ -26,6 +26,7 @@ const isWeb = Platform.OS === "web";
 
 export default function Register({ navigation }: IndexProps) {
   const [form, setForm] = useState({
+    username: '',
     email: '',
     password: '',
     repeatPassword: '',
@@ -71,6 +72,7 @@ export default function Register({ navigation }: IndexProps) {
               },
               body: JSON.stringify(
                 {
+                  username: form.username,
                   email: form.email,
                   password: form.password
                 }
@@ -130,6 +132,17 @@ export default function Register({ navigation }: IndexProps) {
       >
         <View style={styles.formWrapper}>
           <Text style={styles.signInHeader}>SIGN UP</Text>
+
+          {/* Username */}
+          <View style={styles.inputWrapper}>
+            <Feather name="user" size={20} color="#666" style={styles.icon} />
+            <TextInput
+              placeholder="Username"
+              style={styles.input}
+              placeholderTextColor="#666"
+              onChangeText={(text) => setForm({...form, username: text})}
+            />
+          </View>
 
           {/* Email */}
           <View style={styles.inputWrapper}>

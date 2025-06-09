@@ -11,44 +11,10 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
-import { API_URL, useAuth } from "../api/AuthProvider";
+import { API_URL, ChatScheme, MessageScheme, useAuth, UserScheme } from "../api/AuthProvider";
 import { SimpleModal } from "../components/simple-modal";
 
 const isWeb = Platform.OS === "web";
-
-interface ChatData {
-  _id: string;
-  name?: string;
-  description?: String,
-  groupPhoto?: String,
-  isGroup: boolean;
-  participants: string[];
-  admins: string[];
-  createdAt: string;
-  updatedAt: string;
-  lastMessage: string[];
-}
-interface UserData {
-  _id: string;
-  email: string;
-  username?: string;
-  profilePhoto?: string;
-  bannerPhoto?: string;
-  description?: string;
-  phoneNumber?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-interface MessageData {
-  _id: string;
-  chat: string;
-  sender: UserData;
-  content: string;
-  media?: string;
-  type: 'text' | 'image' | 'file';
-  createdAt: string;
-  updatedAt: string;
-}
 
 export default function ChatScreen() {
   const [getModal, setModal] = useState({
@@ -57,14 +23,14 @@ export default function ChatScreen() {
     visible: false,
   });
   const { token, validate } = useAuth();
-  const [currentUserId, setCurrentUserId] = useState<string | undefined>(undefined);
+  const [currentUserData, setCurrentUserData] = useState<UserScheme | undefined>(undefined);
   const [chatScrollView, setChatScrollView] = useState<ScrollView | null>(null);
-  const [groupList, setGroupList] = useState<ChatData[]>([]);
-  const [privateChatList, setPrivateChatList] = useState<ChatData[]>([]);
+  const [groupList, setGroupList] = useState<ChatScheme[]>([]);
+  const [privateChatList, setPrivateChatList] = useState<ChatScheme[]>([]);
   const [loadedChat, setLoadedChat] = useState('');
 
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<MessageData[]>([]);
+  const [messages, setMessages] = useState<MessageScheme[]>([]);
 
   let screenWidth = Dimensions.get("window").width;
   const window = useWindowDimensions();
@@ -74,8 +40,8 @@ export default function ChatScreen() {
   React.useEffect(() => {
     const validateToken = async () => {
       try {
-        const userId = await validate();
-        setCurrentUserId(userId);
+        const userData = await validate();
+        setCurrentUserData(userData);
       } catch (error) {
         console.error('Token validation failed:', error);
         setModal({
@@ -101,7 +67,9 @@ export default function ChatScreen() {
 
   // On loaded chat change, fetch the messages for the selected chat
   React.useEffect(() => {
-    
+    if (!loadedChat) return;
+    setMessages([]); // Clear previous messages
+    handleLoadChatMessages();
   }, [loadedChat]);
 
   React.useEffect(() => {
@@ -143,9 +111,9 @@ export default function ChatScreen() {
         const responseJson = await response.json();
         if (response.ok) {
           if(isGroup) {
-            setGroupList(responseJson as ChatData[]);
+            setGroupList(responseJson.data as ChatScheme[]);
           } else {
-            setPrivateChatList(responseJson as ChatData[]);
+            setPrivateChatList(responseJson.data as ChatScheme[]);
           }
         } else {
           setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
@@ -160,7 +128,7 @@ export default function ChatScreen() {
   }
 
   // Handle load chat messages
-  const handleLoadChatMessages = async (chatId: string) => {
+  const handleLoadChatMessages = async () => {
     try {
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => {
@@ -168,14 +136,9 @@ export default function ChatScreen() {
         }, 7000);
       });
 
-      const params = new URLSearchParams({
-        start: "0",
-        limit: "0",
-      });
-
       const response = await Promise.race(
         [
-          fetch(`${API_URL}/chat/me/all?${params.toString()}`, {
+          fetch(`${API_URL}/chat/${loadedChat}/messages`, {
             method: 'GET',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -187,7 +150,7 @@ export default function ChatScreen() {
       if (response instanceof Response) {
         const responseJson = await response.json();
         if (response.ok) {
-          setMessages(responseJson as MessageData[]);
+          setMessages(responseJson.data as MessageScheme[]);
         } else {
           setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
         }
@@ -200,6 +163,7 @@ export default function ChatScreen() {
     }
   }
 
+  // Handle sending a message
   const handleSend = () => {
     if (!message.trim()) return;
 
@@ -254,8 +218,8 @@ export default function ChatScreen() {
           <Text style={styles.logo}>Chat</Text>
           <View style={styles.profileCard}>
             <View style={styles.avatarPlaceholder} />
-            <Text style={styles.username}>Jonathan</Text>
-            <Text style={styles.status}>Active</Text>
+            <Text style={styles.username}>{currentUserData?.username || currentUserData?.email || "Me"}</Text>
+            <Text style={styles.status}>{currentUserData?.description || ""}</Text>
           </View>
 
           <View style={styles.teamContainer}>
@@ -272,7 +236,7 @@ export default function ChatScreen() {
                   <View style={styles.teamCircle}>
                     <Text style={styles.teamText}>{val.name?.charAt(0) || "_"}</Text>
                   </View>
-                  <Text style={styles.teamName}>{val.name || "Noname"}</Text>
+                  <Text style={styles.teamName}>{val.name || "Unkown Group"}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -281,15 +245,31 @@ export default function ChatScreen() {
           <View style={styles.chatListContainer}>
             <Text style={styles.chatListHeader}>Chats</Text>
             <ScrollView>
-              {["Jodye", "Felly", "Becca", "Horner", "Bica", "Anna", "Raden Mas Joko Suloyo", "Kawasaki", "Momoka Kawahana", "Kadev"].map((name, i) => (
-                <TouchableOpacity key={i} style={styles.chatItem}>
-                  <View style={styles.chatAvatar} />
-                  <View>
-                    <Text style={styles.chatName}>{name}</Text>
-                    <Text style={styles.chatPreview}>Hey, how is going? Everything is fine?</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
+              {privateChatList.map((val, i) => {
+                let chatName: string;
+                let lastMessage: string = val.lastMessage?.content || "No messages yet";
+                if(val.isGroup) {
+                  chatName = val.name || "Unknown Group";
+                } else {
+                  const otherUser = val.participants.filter(A => {return A._id !== currentUserData?._id});
+                  chatName = otherUser[0] ? otherUser[0].username || "Unknown User" : "Unknown User";
+                }
+                return (
+                  <TouchableOpacity key={i} style={styles.chatItem}
+                    onPress={() => {
+                      if (loadedChat !== val._id) {
+                        setLoadedChat(val._id);
+                      }
+                    }}
+                  >
+                    <View style={styles.chatAvatar} />
+                    <View>
+                      <Text style={styles.chatName}>{chatName}</Text>
+                      <Text style={styles.chatPreview}>{lastMessage}</Text>
+                    </View>
+                  </TouchableOpacity>
+              );
+              })}
             </ScrollView>
           </View>
         </View>
@@ -317,10 +297,10 @@ export default function ChatScreen() {
           {messages.map(msg => (
             <View
               key={msg._id}
-              style={[styles.messageBubble, msg.sender._id === currentUserId ? styles.myMessage : styles.otherMessage]}
+              style={[styles.messageBubble, msg.sender._id === currentUserData?._id ? styles.myMessage : styles.otherMessage]}
             >
               <Text style={styles.messageText}>{msg.content}</Text>
-              <Text style={styles.messageTime}>{msg.updatedAt}</Text>
+              <Text style={styles.messageTime}>{new Date(msg.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</Text>
             </View>
           ))}
         </ScrollView>
@@ -424,6 +404,7 @@ const styles = StyleSheet.create({
   },
   teamButton: {
     padding: 6,
+    alignItems: 'center',
   },
   teamText: {
     color: '#ffffff',
