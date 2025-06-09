@@ -11,11 +11,13 @@ const {
   deleteChat,
   editMessage,
   deleteMessage,
-  editGroupChat
+  editGroupChat,
+  getAllChatsForUser
 } = require('../controllers/chatController');
 
 // Chat
 router.post('/create', auth, upload.single('groupPhoto'), createChat);
+router.get('/me/all', auth, getAllChatsForUser);
 router.get('/:chatId', auth, getChatDetail);
 router.put('/:chatId', auth, upload.single('groupPhoto'), editGroupChat);
 router.delete('/:chatId', auth, deleteChat);

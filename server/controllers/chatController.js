@@ -6,10 +6,37 @@ const User = require('../models/User');
 exports.createChat = async (req, res) => {
   const { userIds, isGroup, name, description } = req.body;
   const groupPhoto = req.file?.path;
-
   const creator = req.user;
 
   try {
+    if (!isGroup) {
+      if (!userIds || userIds.length !== 1) {
+        return res.status(400).json({ message: 'Private chat must have exactly one user ID' });
+      }
+
+      const targetId = userIds[0];
+
+      // Check if the chat already exists
+      const existingChat = await Chat.findOne({
+        isGroup: false,
+        participants: { $all: [creator, targetId], $size: 2 }
+      });
+
+      if (existingChat) {
+        return res.status(200).json({ message: 'Chat already exists', chatId: existingChat._id });
+      }
+
+      // If no existing chat, create a new private chat
+      const newChat = new Chat({
+        isGroup: false,
+        participants: [creator, targetId]
+      });
+
+      await newChat.save();
+      return res.status(201).json({ message: 'Chat created successfully', chat: newChat._id });
+    }
+
+    // Not a private chat, so it must be a group chat
     const uniqueParticipants = [...new Set([...userIds, creator])];
 
     const chat = new Chat({
@@ -22,7 +49,7 @@ exports.createChat = async (req, res) => {
     });
 
     await chat.save();
-    res.status(201).json(chat);
+    res.status(201).json({ _id: chat._id, ...chat.toObject() });
   } catch (error) {
     res.status(500).json({ message: error.message || 'Server error' });
   }
@@ -59,6 +86,51 @@ exports.getChatDetail = async (req, res) => {
       participants: chat.participants,
       lastMessage: chat.lastMessage
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
+  }
+};
+
+// Get all chats for a user
+exports.getAllChatsForUser = async (req, res) => {
+  try {
+    const userId = req.user;
+    const { isGroup, sortBy = 'updatedAt', order = 'desc' } = req.query;
+
+    const filter = { participants: userId };
+    if (isGroup === 'true') filter.isGroup = true;
+    if (isGroup === 'false') filter.isGroup = false;
+
+    const sort = {};
+    sort[sortBy] = order === 'asc' ? 1 : -1;
+
+    const chats = await Chat.find(filter)
+      .populate('participants', 'username email profilePhoto')
+      .populate('lastMessage')
+      .sort(sort);
+
+    const formattedChats = chats.map(chat => {
+      const otherUser = !chat.isGroup
+        ? chat.participants.find(p => p._id.toString() !== userId.toString())
+        : null;
+
+      return {
+        _id: chat._id,
+        isGroup: chat.isGroup,
+        name: chat.isGroup ? chat.name : otherUser?.username,
+        photo: chat.isGroup ? chat.groupPhoto : otherUser?.profilePhoto,
+        lastMessage: chat.lastMessage,
+        participants: chat.participants.map(p => ({
+          _id: p._id,
+          username: p.username,
+          email: p.email,
+          profilePhoto: p.profilePhoto
+        })),
+        updatedAt: chat.updatedAt
+      };
+    });
+
+    res.json(formattedChats);
   } catch (error) {
     res.status(500).json({ message: error.message || 'Server error' });
   }

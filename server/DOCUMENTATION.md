@@ -24,7 +24,8 @@ http://localhost:5000/api
 - **Success Response:** `201 Created`
     ```json
     {
-        "message": "User registered successfully"
+        "message": "User registered successfully",
+        "email": "string"
     }
     ```
 - **Error Response:**  
@@ -64,7 +65,7 @@ http://localhost:5000/api
 - **Request Body:**
     ```json
     {
-        "email": "string",
+        "email": "string"
     }
     ```
 - **Success Response:** `200 OK`
@@ -86,7 +87,7 @@ http://localhost:5000/api
 - **Request Body:**
     ```json
     {
-        "newPassword": "string",
+        "newPassword": "string"
     }
     ```
 - **Success Response:** `200 OK`
@@ -117,6 +118,10 @@ http://localhost:5000/api
         "_id": "string",
         "email": "string",
         "username": "string",
+        "profilePhoto": "string",
+        "bannerPhoto": "string",
+        "description": "string",
+        "phoneNumber": "string",
         "createdAt": "2025-06-03T12:26:07.611Z",
         "updatedAt": "2025-06-07T05:54:32.849Z",
         "__v": 0
@@ -125,13 +130,13 @@ http://localhost:5000/api
 - **Error Response:**  
     ```json
     {
-        "error": "Error message"
+        "message": "Error message"
     }
     ```
 
 ### Get User Profile
 
-- **Endpoint:** `GET /users/:userid`
+- **Endpoint:** `GET /user/:userid`
 - **Headers:**  
     `Authorization: Bearer <token>`
 - **Success Response:** `200 OK`
@@ -140,6 +145,10 @@ http://localhost:5000/api
         "_id": "string",
         "email": "string",
         "username": "string",
+        "profilePhoto": "string",
+        "bannerPhoto": "string",
+        "description": "string",
+        "phoneNumber": "string",
         "createdAt": "2025-06-03T12:26:07.611Z",
         "updatedAt": "2025-06-07T05:54:32.849Z",
         "__v": 0
@@ -148,7 +157,7 @@ http://localhost:5000/api
 - **Error Response:**  
     ```json
     {
-        "error": "Error message"
+        "message": "Error message"
     }
     ```
 
@@ -158,33 +167,31 @@ http://localhost:5000/api
 - **Headers:**  
     `Authorization: Bearer <token>`
 - **Request Body:** `multipart/form-data`
-    ```json
-    {
-        "username": "string",
-        "description": "string",
-        "phoneNumber": "string"
-    }
-    ```
-    ```json
-    {
-        "profilePhoto": "file",
-        "bannerPhoto": "file"
-    }
-    ```
+    - Fields:
+        - `username`: string (optional)
+        - `description`: string (optional)
+        - `phoneNumber`: string (optional)
+        - `profilePhoto`: file (optional)
+        - `bannerPhoto`: file (optional)
 - **Success Response:** `200 OK`
     ```json
     {
+        "_id": "string",
+        "email": "string",
         "username": "string",
+        "profilePhoto": "string",
+        "bannerPhoto": "string",
         "description": "string",
         "phoneNumber": "string",
-        "profilePhoto": "file",
-        "bannerPhoto": "file"
+        "createdAt": "2025-06-03T12:26:07.611Z",
+        "updatedAt": "2025-06-07T05:54:32.849Z",
+        "__v": 0
     }
     ```
 - **Error Response:**  
     ```json
     {
-        "error": "Error message"
+        "message": "Error message"
     }
     ```
 
@@ -202,7 +209,7 @@ http://localhost:5000/api
 - **Error Response:**  
     ```json
     {
-        "error": "Error message"
+        "message": "Error message"
     }
     ```
 
@@ -215,40 +222,87 @@ http://localhost:5000/api
 - **Endpoint:** `POST /chat/create`
 - **Headers:**  
     `Authorization: Bearer <token>`
-- **Request Body:**
-    ```json
-    {
-        "userIds": ["string"],
-        "isGroup": false,
-        "name": "string",
-        "description": "string"
-    }
-    ```
-    ```json
-    {
-        "groupPhoto": "file"
-    }
-    ```
+- **Request Body:** `multipart/form-data`
+    - Fields:
+        - `userIds`: array of user IDs (for group: at least one, for private: exactly one)
+        - `isGroup`: boolean
+        - `name`: string (required for group)
+        - `description`: string (optional)
+        - `groupPhoto`: file (optional, for group)
 - **Success Response:** `201 Created`
     ```json
     {
-        "userIds": ["string"],
-        "isGroup": false,
+        "_id": "string",
+        "isGroup": true,
         "name": "string",
         "description": "string",
-        "groupPhoto": "file",
+        "groupPhoto": "string",
         "participants": ["string"],
-        "admins": ["string"]
+        "admins": ["string"],
+        "createdAt": "2025-06-03T12:26:07.611Z",
+        "updatedAt": "2025-06-07T05:54:32.849Z",
+        "__v": 0
+    }
+    ```
+    - For private chat, returns:
+    ```json
+    {
+        "message": "Chat created successfully",
+        "chat": "chatId"
+    }
+    ```
+    - If chat already exists:
+    ```json
+    {
+        "message": "Chat already exists",
+        "chatId": "chatId"
     }
     ```
 - **Error Response:**  
     ```json
     {
-        "error": "Error message"
+        "message": "Error message"
     }
     ```
 
-### Get Personal or Group Property
+### Get All Chats for User
+
+- **Endpoint:** `GET /chat/me/all`
+- **Headers:**  
+    `Authorization: Bearer <token>`
+- **Query Parameters:**
+    - `isGroup`: `true` or `false` (optional)
+    - `sortBy`: string (default: `updatedAt`)
+    - `order`: `asc` or `desc` (default: `desc`)
+- **Success Response:** `200 OK`
+    ```json
+    [
+        {
+            "_id": "string",
+            "isGroup": true,
+            "name": "string",
+            "photo": "string",
+            "lastMessage": { ... },
+            "participants": [
+                {
+                    "_id": "string",
+                    "username": "string",
+                    "email": "string",
+                    "profilePhoto": "string"
+                }
+            ],
+            "updatedAt": "2025-06-07T05:54:32.849Z"
+        }
+    ]
+    ```
+- **Error Response:**  
+    ```json
+    {
+        "message": "Error message"
+    }
+    ```
+
+### Get Chat Details
 
 - **Endpoint:** `GET /chat/:chatId`
 - **Headers:**  
@@ -257,66 +311,51 @@ http://localhost:5000/api
     ```json
     {
         "_id": "string",
-        "isGroup": false,
+        "isGroup": true,
         "name": "string",
         "description": "string",
-        "groupPhoto": null,
+        "groupPhoto": "string",
         "participants": [
             {
                 "_id": "string",
                 "email": "string"
             }
-        ]
+        ],
+        "lastMessage": { ... }
     }
     ```
 - **Error Response:**  
     ```json
     {
-        "error": "Error message"
+        "message": "Error message"
     }
     ```
 
-### Edit Personal or Group Property
+### Edit Group Chat
 
 - **Endpoint:** `PUT /chat/:chatId`
 - **Headers:**  
     `Authorization: Bearer <token>`
 - **Request Body:** `multipart/form-data`
-    ```json
-    {
-        "name": "string",
-        "description": "string"
-    }
-    ```
-    ```json
-    {
-        "groupPhoto": "file"
-    }
-    ```
+    - Fields:
+        - `name`: string (optional)
+        - `description`: string (optional)
+        - `groupPhoto`: file (optional)
 - **Success Response:** `200 OK`
     ```json
     {
-        "_id": "string",
-        "isGroup": false,
-        "name": "string",
-        "description": "string",
-        "groupPhoto": "file",
-        "participants": [
-            {
-                "_id": "string",
-                "email": "string"
-            }
-        ]
+        "message": "Group chat details updated successfully",
+        "chat": { ... }
     }
     ```
 - **Error Response:**  
     ```json
     {
-        "error": "Error message"
+        "message": "Error message"
     }
     ```
 
-### Delete Personal or Group Chat
+### Delete Chat
 
 - **Endpoint:** `DELETE /chat/:chatId`
 - **Headers:**  
@@ -330,7 +369,7 @@ http://localhost:5000/api
 - **Error Response:**  
     ```json
     {
-        "error": "Error message"
+        "message": "Error message"
     }
     ```
 
@@ -343,33 +382,30 @@ http://localhost:5000/api
 - **Endpoint:** `POST /chat/send`
 - **Headers:**  
     `Authorization: Bearer <token>`
-- **Request Body:**
-    ```json
-    {
-        "chatId": "string",
-        "content": "string",
-        "type": "string"
-    }
-    ```
-    ```json
-    {
-        "media": "file"
-    }
-    ```
+- **Request Body:** `multipart/form-data`
+    - Fields:
+        - `chatId`: string
+        - `content`: string (for text)
+        - `type`: string (`text`, `image`, `file`)
+        - `media`: file (for `image` or `file`)
 - **Success Response:** `201 Created`
     ```json
     {
+        "_id": "string",
         "chat": "string",
         "sender": "string",
         "content": "string",
-        "media": "file",
-        "type": "enum: text | image | file"
+        "media": "string",
+        "type": "text",
+        "createdAt": "2025-06-08T02:18:38.497Z",
+        "updatedAt": "2025-06-08T02:18:38.497Z",
+        "__v": 0
     }
     ```
 - **Error Response:**  
     ```json
     {
-        "error": "Error message"
+        "message": "Error message"
     }
     ```
 
@@ -378,13 +414,9 @@ http://localhost:5000/api
 - **Endpoint:** `GET /chat/:chatId/messages`
 - **Headers:**  
     `Authorization: Bearer <token>`
-- **Request Body:**
-    ```json
-    {
-        "start": 0,
-        "limit": 1
-    }
-    ```
+- **Query Parameters:**
+    - `start`: number (optional, default 0)
+    - `limit`: number (optional, default 0 = all)
 - **Success Response:** `200 OK`
     ```json
     [
@@ -396,7 +428,7 @@ http://localhost:5000/api
                 "email": "string"
             },
             "content": "string",
-            "media": "",
+            "media": "string",
             "type": "text",
             "createdAt": "2025-06-08T02:18:38.497Z",
             "updatedAt": "2025-06-08T02:18:38.497Z",
@@ -407,11 +439,11 @@ http://localhost:5000/api
 - **Error Response:**  
     ```json
     {
-        "error": "Error message"
+        "message": "Error message"
     }
     ```
 
-### Edit Messages
+### Edit Message
 
 - **Endpoint:** `PUT /chat/message/:messageId`
 - **Headers:**  
@@ -425,28 +457,18 @@ http://localhost:5000/api
 - **Success Response:** `200 OK`
     ```json
     {
-        "_id": "messageId",
-        "chat": "chatId",
-        "sender": {
-            "_id": "userId",
-            "email": "string"
-        },
-        "content": "string",
-        "media": "",
-        "type": "text",
-        "createdAt": "2025-06-08T02:18:38.497Z",
-        "updatedAt": "2025-06-08T03:00:00.000Z",
-        "__v": 0
+        "message": "Chat message updated successfully",
+        "message": { ... }
     }
     ```
 - **Error Response:**  
     ```json
     {
-        "error": "Error message"
+        "message": "Error message"
     }
     ```
 
-### Delete Messages
+### Delete Message
 
 - **Endpoint:** `DELETE /chat/message/:messageId`
 - **Headers:**  
@@ -454,13 +476,13 @@ http://localhost:5000/api
 - **Success Response:** `200 OK`
     ```json
     {
-        "message": "Message deleted successfully"
+        "message": "Message successfully deleted"
     }
     ```
 - **Error Response:**  
     ```json
     {
-        "error": "Error message"
+        "message": "Error message"
     }
     ```
 
@@ -472,6 +494,6 @@ All endpoints may return errors in the following format:
 
 ```json
 {
-    "error": "Error message"
+    "message": "Error message"
 }
 ```
