@@ -119,10 +119,10 @@ exports.getSelfProfile = async (req, res) => {
 };
 
 exports.getUserProfile = async (req, res) => {
-  const { userid } = req.params;
+  const { userId } = req.params;
 
   try {
-    const user = await User.findById(userid).select('-password -resetPasswordToken -resetPasswordExpires');
+    const user = await User.findById(userId).select('-password -resetPasswordToken -resetPasswordExpires');
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     res.json(user);

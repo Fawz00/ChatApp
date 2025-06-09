@@ -136,7 +136,7 @@ http://localhost:5000/api
 
 ### Get User Profile
 
-- **Endpoint:** `GET /user/:userid`
+- **Endpoint:** `GET /user/:userId`
 - **Headers:**  
     `Authorization: Bearer <token>`
 - **Success Response:** `200 OK`
@@ -163,7 +163,7 @@ http://localhost:5000/api
 
 ### Edit Self Profile
 
-- **Endpoint:** `PUT /user/me`
+- **Endpoint:** `PUT /user/update`
 - **Headers:**  
     `Authorization: Bearer <token>`
 - **Request Body:** `multipart/form-data`
@@ -197,7 +197,7 @@ http://localhost:5000/api
 
 ### Delete Account
 
-- **Endpoint:** `DELETE /user/me`
+- **Endpoint:** `DELETE /user/delete`
 - **Headers:**  
     `Authorization: Bearer <token>`
 - **Success Response:** `200 OK`
@@ -230,6 +230,7 @@ http://localhost:5000/api
         - `description`: string (optional)
         - `groupPhoto`: file (optional, for group)
 - **Success Response:** `201 Created`
+    - For group chat:
     ```json
     {
         "_id": "string",
@@ -244,7 +245,7 @@ http://localhost:5000/api
         "__v": 0
     }
     ```
-    - For private chat, returns:
+    - For private chat:
     ```json
     {
         "message": "Chat created successfully",
@@ -276,24 +277,26 @@ http://localhost:5000/api
     - `order`: `asc` or `desc` (default: `desc`)
 - **Success Response:** `200 OK`
     ```json
-    [
-        {
-            "_id": "string",
-            "isGroup": true,
-            "name": "string",
-            "photo": "string",
-            "lastMessage": { ... },
-            "participants": [
-                {
-                    "_id": "string",
-                    "username": "string",
-                    "email": "string",
-                    "profilePhoto": "string"
-                }
-            ],
-            "updatedAt": "2025-06-07T05:54:32.849Z"
-        }
-    ]
+    {
+        "data": [
+            {
+                "_id": "string",
+                "isGroup": true,
+                "name": "string",
+                "photo": "string",
+                "lastMessage": { /* message object */ },
+                "participants": [
+                    {
+                        "_id": "string",
+                        "username": "string",
+                        "email": "string",
+                        "profilePhoto": "string"
+                    }
+                ],
+                "updatedAt": "2025-06-07T05:54:32.849Z"
+            }
+        ]
+    }
     ```
 - **Error Response:**  
     ```json
@@ -321,7 +324,7 @@ http://localhost:5000/api
                 "email": "string"
             }
         ],
-        "lastMessage": { ... }
+        "lastMessage": { /* message object */ }
     }
     ```
 - **Error Response:**  
@@ -345,7 +348,7 @@ http://localhost:5000/api
     ```json
     {
         "message": "Group chat details updated successfully",
-        "chat": { ... }
+        "chat": { /* updated chat object */ }
     }
     ```
 - **Error Response:**  
@@ -392,7 +395,7 @@ http://localhost:5000/api
     ```json
     {
         "_id": "string",
-        "chat": "string",
+        "chatId": "string",
         "sender": "string",
         "content": "string",
         "media": "string",
@@ -419,22 +422,24 @@ http://localhost:5000/api
     - `limit`: number (optional, default 0 = all)
 - **Success Response:** `200 OK`
     ```json
-    [
-        {
-            "_id": "messageId",
-            "chat": "chatId",
-            "sender": {
-                "_id": "userId",
-                "email": "string"
-            },
-            "content": "string",
-            "media": "string",
-            "type": "text",
-            "createdAt": "2025-06-08T02:18:38.497Z",
-            "updatedAt": "2025-06-08T02:18:38.497Z",
-            "__v": 0
-        }
-    ]
+    {
+        "data": [
+            {
+                "_id": "messageId",
+                "chatId": "chatId",
+                "sender": {
+                    "_id": "userId",
+                    "email": "string"
+                },
+                "content": "string",
+                "media": "string",
+                "type": "text",
+                "createdAt": "2025-06-08T02:18:38.497Z",
+                "updatedAt": "2025-06-08T02:18:38.497Z",
+                "__v": 0
+            }
+        ]
+    }
     ```
 - **Error Response:**  
     ```json
@@ -458,7 +463,7 @@ http://localhost:5000/api
     ```json
     {
         "message": "Chat message updated successfully",
-        "message": { ... }
+        "message": { /* updated message object */ }
     }
     ```
 - **Error Response:**  
