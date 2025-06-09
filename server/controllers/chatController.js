@@ -33,7 +33,7 @@ exports.createChat = async (req, res) => {
       });
 
       await newChat.save();
-      return res.status(201).json({ message: 'Chat created successfully', chat: newChat._id });
+      return res.status(201).json({ message: 'Chat created successfully', chatId: newChat._id });
     }
 
     // Not a private chat, so it must be a group chat
@@ -77,15 +77,17 @@ exports.getChatDetail = async (req, res) => {
       return res.status(403).json({ message: 'Anda tidak diizinkan mengakses chat ini' });
     }
 
-    res.json({
-      _id: chat._id,
-      isGroup: chat.isGroup,
-      name: chat.isGroup ? chat.name : null,
-      description: chat.isGroup ? chat.description : null,
-      groupPhoto: chat.isGroup ? chat.groupPhoto : null,
-      participants: chat.participants,
-      lastMessage: chat.lastMessage
-    });
+    res.json(
+      {
+        _id: chat._id,
+        isGroup: chat.isGroup,
+        name: chat.isGroup ? chat.name : null,
+        description: chat.isGroup ? chat.description : null,
+        groupPhoto: chat.isGroup ? chat.groupPhoto : null,
+        participants: chat.participants,
+        lastMessage: chat.lastMessage
+      }
+  );
   } catch (error) {
     res.status(500).json({ message: error.message || 'Server error' });
   }
@@ -130,7 +132,11 @@ exports.getAllChatsForUser = async (req, res) => {
       };
     });
 
-    res.json(formattedChats);
+    res.json(
+      {
+        data: formattedChats
+      }
+    );
   } catch (error) {
     res.status(500).json({ message: error.message || 'Server error' });
   }
@@ -206,7 +212,7 @@ exports.sendMessage = async (req, res) => {
 
     // Create new message
     const message = new Message({
-      chat: chatId,
+      chatId,
       sender: req.user,
       content: type === 'text' ? content : '',
       media: type !== 'text' ? media : '',
@@ -243,9 +249,8 @@ exports.editMessage = async (req, res) => {
     await message.save();
 
     res.json({ message: 'Chat message updated successfully', message });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 
@@ -267,7 +272,7 @@ exports.getMessages = async (req, res) => {
     }
 
     // Get messages for the chat
-    let query = Message.find({ chat: chatId })
+    let query = Message.find({ chatId })
       .populate('sender', 'email')
       .sort('createdAt');
 
@@ -277,10 +282,13 @@ exports.getMessages = async (req, res) => {
 
     const messages = await query;
 
-    res.json(messages);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
+    res.json(
+      {
+        data: messages
+      }
+    );
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 
@@ -298,8 +306,7 @@ exports.deleteMessage = async (req, res) => {
 
     await message.deleteOne();
     res.json({ message: 'Message successfully deleted' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('Server error');
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 };

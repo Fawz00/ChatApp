@@ -10,11 +10,11 @@ const {
   deleteAccount
 } = require('../controllers/authController');
 
-router.get('/:userid', auth, getUserProfile);
 router.get('/me', auth, getSelfProfile);
+router.get('/:userId', auth, getUserProfile);
 
 router.put(
-  '/me',
+  '/update',
   auth,
   upload.fields([
     { name: 'profilePhoto', maxCount: 1 },
@@ -23,6 +23,6 @@ router.put(
   editProfile
 );
 
-router.delete('/me', auth, deleteAccount);
+router.delete('/delete', auth, deleteAccount);
 
 module.exports = router;
