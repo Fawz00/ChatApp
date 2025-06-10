@@ -13,6 +13,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { API_URL, ChatScheme, MessageScheme, useAuth, UserScheme } from "../api/AuthProvider";
 import { SimpleModal } from "../components/simple-modal";
+import SettingsPanel from "../components/settingsPanel";
+import ChatSettingsPanel from "../components/ChatSettingsPanel";
 
 const isWeb = Platform.OS === "web";
 
@@ -243,6 +245,20 @@ export default function ChatScreen() {
         isLoading={getModal.isLoading}
         onClose={() => setModal({ ...getModal, visible: false })}
       />
+
+      {/* pengaturan */}
+      {/* <SettingsPanel isVisible={true} onClose={() => {}} /> */}
+
+      {/*ChatSettingsPanel */}
+      <ChatSettingsPanel onClose={function (): void {
+        throw new Error("Function not implemented.");
+      } } isVisible={false} onArchiveAllChats={function (): void {
+        throw new Error("Function not implemented.");
+      } } onClearAllMessages={function (): void {
+        throw new Error("Function not implemented.");
+      } } onDeleteAllChats={function (): void {
+        throw new Error("Function not implemented.");
+      } }></ChatSettingsPanel>
       
       {isLargeScreen && (
         <View style={styles.sidebar}>
