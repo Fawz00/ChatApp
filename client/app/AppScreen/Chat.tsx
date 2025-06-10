@@ -164,18 +164,49 @@ export default function ChatScreen() {
   }
 
   // Handle sending a message
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!message.trim()) return;
+    if (!loadedChat || !token) return;
 
-    const newMsg = {
-      id: messages.length + 1,
-      text: message,
-      time: new Date().toLocaleTimeString(),
-      from: "Jonathan",
-    };
-    // Handle POST request to send the message here
-    // Not implemented yet.
-    setMessage("");
+    setModal({ ...getModal, isLoading: true });
+
+    try {
+      const formData = new FormData();
+      formData.append("chatId", loadedChat);
+      formData.append("content", message.trim());
+      formData.append("type", "text");
+
+      const response = await fetch(`${API_URL}/chat/send`, {
+        method: "POST",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          // Jangan set 'Content-Type', biarkan FormData yang handle.
+        },
+        body: formData,
+      });
+
+      const responseJson = await response.json();
+
+      if (response.ok) {
+        // Setelah kirim sukses, ambil ulang pesan
+        setMessage("");
+        handleLoadChatMessages();
+      } else {
+        setModal({
+          message: responseJson.message || "Gagal mengirim pesan.",
+          isLoading: false,
+          visible: true,
+        });
+      }
+    } catch (error) {
+      setModal({
+        message: `Terjadi kesalahan saat mengirim pesan.\n${error instanceof Error ? error.message : 'Unknown error'}`,
+        isLoading: false,
+        visible: true,
+      });
+    } finally {
+      setModal(prev => ({ ...prev, isLoading: false }));
+    }
   };
 
   return (

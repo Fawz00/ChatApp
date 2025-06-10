@@ -10,6 +10,7 @@ import {
   Dimensions,
   useWindowDimensions,
   Image,
+  SafeAreaView,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -32,6 +33,11 @@ export default function Index({ navigation }: IndexProps) {
   }, [window.width, window.height]);
 
   return (
+    <SafeAreaView
+      style={{
+        flex: 1,
+      }}
+    >
     <ScrollView contentContainerStyle={styles.container}>
 
         <View style={styles.leftContainer}>
@@ -83,6 +89,7 @@ export default function Index({ navigation }: IndexProps) {
           </View>
         </View>
     </ScrollView>
+    </SafeAreaView>
   );
 };
 
