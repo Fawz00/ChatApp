@@ -55,7 +55,23 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
 
 const styles = StyleSheet.create({
   settingsPanel: {
+    flex: 1,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    zIndex: 1000,
     padding: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    width: 500,
+    height: 500,
+    borderTopRightRadius: 20,
   },
   settingsHeader: {
     flexDirection: 'row',

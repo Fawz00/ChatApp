@@ -7,7 +7,7 @@ import React from "react";
 
 export default function AppDrawerContent(props: DrawerContentComponentProps) {
   const { state, ...rest } = props;
-  const { logout, validate, setSidebarContent } = useAuth();
+  const { logout, validate, setOpenSettings } = useAuth();
   const [profile, setProfile] = useState<UserScheme | undefined>(undefined);
 
   const hiddenScreens = ['Hidden'];
@@ -30,7 +30,7 @@ export default function AppDrawerContent(props: DrawerContentComponentProps) {
   // Handle open settings
   const handleOpenSettings = async () => {
     props.navigation.closeDrawer();
-    setSidebarContent(SidebarContent.SETTINGS);
+    setOpenSettings(true);
   }
 
   return (

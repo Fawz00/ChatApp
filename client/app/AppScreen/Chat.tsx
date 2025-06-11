@@ -25,7 +25,7 @@ export default function ChatScreen() {
     isLoading: false,
     visible: false,
   });
-  const { token, validate, sidebarContent, setSidebarContent } = useAuth();
+  const { token, validate, openSettings, setOpenSettings } = useAuth();
   const [currentUserData, setCurrentUserData] = useState<UserScheme | undefined>(undefined);
   const [chatScrollView, setChatScrollView] = useState<ScrollView | null>(null);
   const [groupList, setGroupList] = useState<ChatScheme[]>([]);
@@ -58,8 +58,8 @@ export default function ChatScreen() {
 
     // Handle back button press on Android
     const backAction = () => {
-      if (sidebarContent === SidebarContent.SETTINGS) {
-        setSidebarContent(SidebarContent.CHAT_LIST);
+      if (openSettings) {
+        setOpenSettings(false); // Close settings if open
         return true; // Prevent default back action
       }
       return false; // Allow default back action
@@ -258,9 +258,6 @@ export default function ChatScreen() {
         </style>
       )}
 
-      {/* pengaturan */}
-      {/* <SettingsPanel isVisible={showSettings} onClose={() => setShowSettings(false)} /> */}
-
       {/* Modal Popup for Error Messages */}
       <SimpleModal
         visible={getModal.visible}
@@ -268,6 +265,9 @@ export default function ChatScreen() {
         isLoading={getModal.isLoading}
         onClose={() => setModal({ ...getModal, visible: false })}
       />
+
+      {/* pengaturan */}
+      <SettingsPanel isVisible={openSettings} onClose={() => setOpenSettings(false)} />
       
       {isLargeScreen && (
         <ChatSidebar

@@ -32,7 +32,7 @@ export default function ChatSidebar({
       {/* Teams Section */}
       <View style={styles.teamContainer}>
         <Text style={styles.teamLabel}>Teams</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.teamsRow}>
+        <ScrollView contentContainerStyle={styles.teamsRow}>
           {groupList.map((val) => (
             <TouchableOpacity
               key={val._id}
@@ -99,7 +99,7 @@ export default function ChatSidebar({
 
 const styles = StyleSheet.create({
   sidebar: {
-    width: 320,
+    width: 420,
     padding: 16,
     backgroundColor: '#ffffff',
     borderRightWidth: 1,
@@ -138,6 +138,7 @@ const styles = StyleSheet.create({
   },
   teamsRow: {
     flexDirection: 'row',
+    overflow: 'scroll',
     gap: 4,
     paddingBottom: 8, // For horizontal scroll indicators
   },
