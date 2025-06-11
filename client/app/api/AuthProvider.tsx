@@ -4,7 +4,7 @@ import { Storage } from 'expo-storage'
 import { Platform } from 'react-native';
 
 //#region Constants
-export const API_URL = 'http://192.168.2.123:5000/api';
+export const API_URL = 'http://192.168.100.7:5000/api';
 
 export interface ChatScheme {
   _id: string;
@@ -39,12 +39,18 @@ export interface MessageScheme {
   createdAt: string;
   updatedAt: string;
 }
+export enum SidebarContent {
+  CHAT_LIST = 'chat_list',
+  SETTINGS = 'settings',
+}
 
 interface AuthContextType {
     token: string | null;
     login: (newToken: string) => void;
     logout: () => void;
     validate: () => Promise<UserScheme | undefined>;
+    setSidebarContent: (content: SetStateAction<SidebarContent>) => void;
+    sidebarContent: SidebarContent;
 }
 interface StorageAccount {
     token: string;
@@ -54,6 +60,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
     const [token, setToken] = useState<string | null>(null);
+    const [sidebarContent, setSidebarContent] = useState<SidebarContent>(SidebarContent.CHAT_LIST);
 
     useEffect(() => {
         loadAccount();
@@ -89,7 +96,6 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
                 if(data) {
                     setToken(data.token);
                 }
-                return;
             } else {
                 // For mobile, use Expo Storage
                 const item = await Storage.getItem({ key: 'account' });
@@ -103,7 +109,7 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
         }
     }
 
-    const login = (newToken: string) => {
+    const login = async (newToken: string) => {
         saveAccount(newToken);
         setToken(newToken);
     };
@@ -134,21 +140,22 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
     
             if (response instanceof Response) {
                 const responseJson = await response.json();
-            if (response.ok) {
-                return responseJson as UserScheme;
-            } else {
-                console.warn(responseJson.message || 'An error occurred on the server.');
-            }
+                if (response.ok) {
+                    return responseJson as UserScheme;
+                } else {
+                    console.warn(responseJson.message || 'An error occurred on the server.');
+                }
             } else {
                 console.warn('An error occurred, invalid server response.');
             }
         } catch (error) {
             console.error('An error occurred:', error);
+            logout(); // Logout on error
         }
     };
 
     return (
-        <AuthContext.Provider value={{ token, validate, login, logout }}>
+        <AuthContext.Provider value={{ token, validate, login, logout, setSidebarContent, sidebarContent }}>
             {children}
         </AuthContext.Provider>
     );

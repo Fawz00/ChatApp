@@ -3,12 +3,12 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-interface SettingsPanelProps {
+interface SettingsPanel {
   onClose: () => void;
   isVisible: boolean;
 }
 
-const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, isVisible }) => {
+const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
   if (!isVisible) {
     return null; // Don't render anything if not visible
   }
@@ -18,7 +18,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, isVisible }) => 
       <View style={styles.settingsHeader}>
         <Text style={styles.settingsTitle}>Account</Text>
         <TouchableOpacity onPress={onClose}>
-          <Ionicons name="close" size={24} color="#fff" />
+          <Ionicons name="close" size={24} color="#1f1f1f" />
         </TouchableOpacity>
       </View>
       <View style={styles.settingsOption}>
@@ -56,14 +56,20 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({ onClose, isVisible }) => 
 const styles = StyleSheet.create({
   settingsPanel: {
     position: 'absolute',
-    top: 0,
+    bottom: 0,
     left: 0,
-    width: 250, // Adjust width as needed based on your design preference
-    height: '100%',
-    backgroundColor: 'rgba(107, 114, 128, 0.9)', // Semi-transparent dark background
+    width: 500, // Adjust width as needed based on your design preference
+    height: 500,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)', // Semi-transparent dark background
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 2,
+      height: -2,
+    },
+    shadowOpacity: 0.125,
+    shadowRadius: 8,
     padding: 20,
-    borderTopRightRadius: 10,
-    borderBottomRightRadius: 10,
+    borderTopRightRadius: 20,
     zIndex: 100, // Ensure it's above other content
   },
   settingsHeader: {
@@ -75,14 +81,13 @@ const styles = StyleSheet.create({
   settingsTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#fff',
   },
   settingsOption: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
-    backgroundColor: '#fff',
+    backgroundColor: '#efefef',
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 15,

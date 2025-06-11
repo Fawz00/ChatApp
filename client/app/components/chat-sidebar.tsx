@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { UserScheme, ChatScheme } from '../api/AuthProvider'; // Pastikan path ini benar
 import { Ionicons } from '@expo/vector-icons'; // Jika ada ikon tambahan yang ingin Anda gunakan
 
-interface ChatSidebarProps {
+interface ChatSidebar {
   currentUserData: UserScheme | undefined;
   groupList: ChatScheme[];
   privateChatList: ChatScheme[];
@@ -17,7 +17,7 @@ export default function ChatSidebar({
   privateChatList,
   loadedChat,
   setLoadedChat,
-}: ChatSidebarProps) {
+}: ChatSidebar) {
   return (
     <View style={styles.sidebar}>
       <Text style={styles.logo}>Chat</Text>

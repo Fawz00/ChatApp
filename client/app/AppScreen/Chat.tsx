@@ -9,12 +9,13 @@ import {
   Dimensions,
   useWindowDimensions,
   Platform,
+  BackHandler,
 } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import { API_URL, ChatScheme, MessageScheme, useAuth, UserScheme } from "../api/AuthProvider";
 import { SimpleModal } from "../components/simple-modal";
-import SettingsPanel from "../components/settingsPanel";
-import ChatSettingsPanel from "../components/ChatSettingsPanel";
+import SettingsPanel from "../components/settings-panel";
+import ChatSidebar from "../components/chat-sidebar";
 
 const isWeb = Platform.OS === "web";
 
@@ -30,6 +31,7 @@ export default function ChatScreen() {
   const [groupList, setGroupList] = useState<ChatScheme[]>([]);
   const [privateChatList, setPrivateChatList] = useState<ChatScheme[]>([]);
   const [loadedChat, setLoadedChat] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
 
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<MessageScheme[]>([]);
@@ -42,8 +44,8 @@ export default function ChatScreen() {
   React.useEffect(() => {
     const validateToken = async () => {
       try {
-        const userData = await validate();
-        setCurrentUserData(userData);
+        const profile = await validate();
+        setCurrentUserData(profile);
       } catch (error) {
         console.error('Token validation failed:', error);
         setModal({
@@ -54,6 +56,24 @@ export default function ChatScreen() {
       }
     };
     validateToken();
+
+    // Handle back button press on Android
+    const backAction = () => {
+      if (showSettings) {
+        setShowSettings(false);
+        return true; // Prevent default back action
+      }
+      return false; // Allow default back action
+    }
+    
+    const backHandler = BackHandler.addEventListener(
+      "hardwareBackPress",
+      backAction
+    );
+
+    return () => {
+      backHandler.remove(); // Clean up the event listener
+    };
   }, []);
 
   // On window resize, update the screen width
@@ -74,6 +94,7 @@ export default function ChatScreen() {
     handleLoadChatMessages();
   }, [loadedChat]);
 
+  // Scroll to the end of the chat messages when new messages are added
   React.useEffect(() => {
     if (chatScrollView) {
       chatScrollView.scrollToEnd({ animated: true });
@@ -238,6 +259,9 @@ export default function ChatScreen() {
         </style>
       )}
 
+      {/* pengaturan */}
+      <SettingsPanel isVisible={showSettings} onClose={() => setShowSettings(false)} />
+
       {/* Modal Popup for Error Messages */}
       <SimpleModal
         visible={getModal.visible}
@@ -245,81 +269,15 @@ export default function ChatScreen() {
         isLoading={getModal.isLoading}
         onClose={() => setModal({ ...getModal, visible: false })}
       />
-
-      {/* pengaturan */}
-      {/* <SettingsPanel isVisible={true} onClose={() => {}} /> */}
-
-      {/*ChatSettingsPanel */}
-      <ChatSettingsPanel onClose={function (): void {
-        throw new Error("Function not implemented.");
-      } } isVisible={false} onArchiveAllChats={function (): void {
-        throw new Error("Function not implemented.");
-      } } onClearAllMessages={function (): void {
-        throw new Error("Function not implemented.");
-      } } onDeleteAllChats={function (): void {
-        throw new Error("Function not implemented.");
-      } }></ChatSettingsPanel>
       
       {isLargeScreen && (
-        <View style={styles.sidebar}>
-          <Text style={styles.logo}>Chat</Text>
-          <View style={styles.profileCard}>
-            <View style={styles.avatarPlaceholder} />
-            <Text style={styles.username}>{currentUserData?.username || currentUserData?.email || "Me"}</Text>
-            <Text style={styles.status}>{currentUserData?.description || ""}</Text>
-          </View>
-
-          <View style={styles.teamContainer}>
-            <Text style={styles.teamLabel}>Teams</Text>
-            <View style={styles.teamsRow}>
-              {groupList.map((val, i) => (
-                <TouchableOpacity key={i} style={styles.teamButton}
-                  onPress={() => {
-                    if (loadedChat !== val._id) {
-                      setLoadedChat(val._id);
-                    }
-                  }}
-                >
-                  <View style={styles.teamCircle}>
-                    <Text style={styles.teamText}>{val.name?.charAt(0) || "_"}</Text>
-                  </View>
-                  <Text style={styles.teamName}>{val.name || "Unkown Group"}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View style={styles.chatListContainer}>
-            <Text style={styles.chatListHeader}>Chats</Text>
-            <ScrollView>
-              {privateChatList.map((val, i) => {
-                let chatName: string;
-                let lastMessage: string = val.lastMessage?.content || "No messages yet";
-                if(val.isGroup) {
-                  chatName = val.name || "Unknown Group";
-                } else {
-                  const otherUser = val.participants.filter(A => {return A._id !== currentUserData?._id});
-                  chatName = otherUser[0] ? otherUser[0].username || "Unknown User" : "Unknown User";
-                }
-                return (
-                  <TouchableOpacity key={i} style={styles.chatItem}
-                    onPress={() => {
-                      if (loadedChat !== val._id) {
-                        setLoadedChat(val._id);
-                      }
-                    }}
-                  >
-                    <View style={styles.chatAvatar} />
-                    <View>
-                      <Text style={styles.chatName}>{chatName}</Text>
-                      <Text style={styles.chatPreview}>{lastMessage}</Text>
-                    </View>
-                  </TouchableOpacity>
-              );
-              })}
-            </ScrollView>
-          </View>
-        </View>
+        <ChatSidebar
+          groupList={groupList}
+          privateChatList={privateChatList}
+          currentUserData={currentUserData}
+          loadedChat={loadedChat}
+          setLoadedChat={setLoadedChat}
+        />
       )}
 
       <View style={styles.chatWindow}>
