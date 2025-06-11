@@ -12,7 +12,7 @@ import {
   BackHandler,
 } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
-import { API_URL, ChatScheme, MessageScheme, useAuth, UserScheme } from "../api/AuthProvider";
+import { API_URL, ChatScheme, MessageScheme, SidebarContent, useAuth, UserScheme } from "../api/AuthProvider";
 import { SimpleModal } from "../components/simple-modal";
 import SettingsPanel from "../components/settings-panel";
 import ChatSidebar from "../components/chat-sidebar";
@@ -25,20 +25,19 @@ export default function ChatScreen() {
     isLoading: false,
     visible: false,
   });
-  const { token, validate } = useAuth();
+  const { token, validate, sidebarContent, setSidebarContent } = useAuth();
   const [currentUserData, setCurrentUserData] = useState<UserScheme | undefined>(undefined);
   const [chatScrollView, setChatScrollView] = useState<ScrollView | null>(null);
   const [groupList, setGroupList] = useState<ChatScheme[]>([]);
   const [privateChatList, setPrivateChatList] = useState<ChatScheme[]>([]);
   const [loadedChat, setLoadedChat] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
 
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<MessageScheme[]>([]);
 
   let screenWidth = Dimensions.get("window").width;
   const window = useWindowDimensions();
-  const isLargeScreen = screenWidth >= 768;
+  const isLargeScreen = screenWidth >= 720;
 
   // On load, validate the token
   React.useEffect(() => {
@@ -59,8 +58,8 @@ export default function ChatScreen() {
 
     // Handle back button press on Android
     const backAction = () => {
-      if (showSettings) {
-        setShowSettings(false);
+      if (sidebarContent === SidebarContent.SETTINGS) {
+        setSidebarContent(SidebarContent.CHAT_LIST);
         return true; // Prevent default back action
       }
       return false; // Allow default back action
@@ -260,7 +259,7 @@ export default function ChatScreen() {
       )}
 
       {/* pengaturan */}
-      <SettingsPanel isVisible={showSettings} onClose={() => setShowSettings(false)} />
+      {/* <SettingsPanel isVisible={showSettings} onClose={() => setShowSettings(false)} /> */}
 
       {/* Modal Popup for Error Messages */}
       <SimpleModal
