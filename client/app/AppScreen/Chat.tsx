@@ -65,7 +65,7 @@ export default function ChatScreen() {
       }
       return false; // Allow default back action
     }
-    
+
     const backHandler = BackHandler.addEventListener(
       "hardwareBackPress",
       backAction
@@ -280,6 +280,7 @@ export default function ChatScreen() {
         />
       )}
 
+      {/* Message view */}
       <View style={styles.chatWindow}>
         <View style={styles.chatHeader}>
           <View style={styles.chatAvatar} />
@@ -327,6 +328,7 @@ export default function ChatScreen() {
         </View>
       </View>
 
+      {/* Details view */}
       {isLargeScreen && (
         <View style={styles.detailPanel}>
           <View style={styles.profileCard}>
