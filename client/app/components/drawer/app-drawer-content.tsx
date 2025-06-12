@@ -105,6 +105,7 @@ export default function AppDrawerContent(props: DrawerContentComponentProps) {
 const styles = StyleSheet.create({
   mainView: {
     flex: 1,
+    borderTopRightRadius: 50,
   },
   titleBackground: {
     backgroundColor: '#f66d22',

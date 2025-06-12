@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform, Dimensions, useWindowDimensions } from 'react-native';
 import { UserScheme, ChatScheme } from '../api/AuthProvider'; // Pastikan path ini benar
 import { Feather, Ionicons } from '@expo/vector-icons'; // Jika ada ikon tambahan yang ingin Anda gunakan
+import { Props } from '../AppScreen/Chat';
 
 interface ChatListSidebar {
+  screenProps: Props,
   currentUserData: UserScheme | undefined;
   groupList: ChatScheme[];
   privateChatList: ChatScheme[];
@@ -13,6 +15,7 @@ interface ChatListSidebar {
 const isWeb = Platform.OS === "web";
 
 export default function ChatListSidebar({
+  screenProps,
   currentUserData,
   groupList,
   privateChatList,
@@ -26,7 +29,7 @@ export default function ChatListSidebar({
     const isLargeScreen = screenWidth > 720;
 
   return (
-    <View style={[styles.sidebar, !isLargeScreen && styles.sidebarMobile]}>
+    <View style={isLargeScreen ? styles.sidebar : styles.sidebarMobile}>
       {isWeb && (
         <style type="text/css">
           {`
@@ -37,13 +40,36 @@ export default function ChatListSidebar({
         </style>
       )}
 
-      <Text style={styles.logo}>Chat</Text>
+      <TouchableOpacity
+        style={{
+          position: 'absolute',
+          top: 16,
+          left: 16,
+          zIndex: 10,
+          backgroundColor: '#f3f4f6',
+          padding: 8,
+          borderRadius: 50,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 3.84,
+          elevation: 5, // For Android shadow
+        }}
+        onPress={() => screenProps.navigation.openDrawer()}
+      >
+        <Ionicons name="menu" size={24} />
+      </TouchableOpacity>
 
       {/* Profile Card */}
       <View style={styles.profileCard}>
         <View style={styles.avatarPlaceholder} />
         <Text style={styles.username}>{currentUserData?.username || currentUserData?.email || "Me"}</Text>
         <Text style={styles.status}>{currentUserData?.description || ""}</Text>
+      </View>
+
+      {/* Chat menu */}
+      <View style={styles.chatMenu}>
+        <Text style={styles.chatTitle}>Chat</Text>
       </View>
 
       {/* Search */}
@@ -127,7 +153,9 @@ export default function ChatListSidebar({
 
 const styles = StyleSheet.create({
   sidebar: {
-    width: 420,
+    maxWidth: 420,
+    minWidth: 300,
+    width: '40%',
     padding: 16,
     backgroundColor: '#ffffff',
     borderRightWidth: 1,
@@ -140,14 +168,13 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderColor: '#e5e7eb',
   },
-  logo: {
+  chatTitle: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 16,
   },
   profileCard: {
     alignItems: 'center',
-    marginBottom: 24,
+    paddingVertical: 24,
   },
   avatarPlaceholder: {
     width: 64,
@@ -263,5 +290,11 @@ const styles = StyleSheet.create({
   },
   activeChatItem: {
     backgroundColor: '#e0e7ff', // Warna latar belakang untuk item yang aktif
+  },
+  chatMenu: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
 });

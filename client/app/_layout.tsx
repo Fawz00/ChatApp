@@ -15,7 +15,6 @@ import { AppDrawerNavigator } from './components/drawer/app-drawer-navigation';
 import AppDrawerContent from './components/drawer/app-drawer-content';
 
 const AuthStack = createNativeStackNavigator();
-const AppDrawerNav = createDrawerNavigator();
 
 export default function RootLayout() {
   return (

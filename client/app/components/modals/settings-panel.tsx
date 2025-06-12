@@ -9,9 +9,6 @@ interface SettingsPanel {
 }
 
 const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
-  if (!isVisible) {
-    return null; // Don't render anything if not visible
-  }
 
   return (
     <Modal

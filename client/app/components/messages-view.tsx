@@ -14,6 +14,7 @@ import React from "react";
 
 interface MessagesView {
   loadedChat: string;
+  setLoadedChat: (chatId: string) => void;
   getModal: {
     message: string;
     isLoading: boolean;
@@ -29,6 +30,7 @@ interface MessagesView {
 
 export default function MessagesView({
   loadedChat,
+  setLoadedChat,
   getModal,
   setModal,
   currentUserData,
@@ -129,7 +131,14 @@ export default function MessagesView({
   return (
     <View style={styles.chatWindow}>
       <View style={styles.chatHeader}>
-        <View style={styles.chatAvatar} />
+        <View style={styles.chatHeaderActions}>
+          <TouchableOpacity
+            onPress={() => setLoadedChat("")}
+          >
+            <Ionicons name="arrow-back" size={24} />
+          </TouchableOpacity>
+          <View style={styles.chatAvatar} />
+        </View>
         <View>
           <Text style={styles.chatName}>Jodye</Text>
           <Text style={styles.status}>Active</Text>
@@ -187,11 +196,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 8,
     paddingHorizontal: 12,
   },
   chatHeaderActions: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   chatAvatar: {
@@ -210,7 +220,7 @@ const styles = StyleSheet.create({
   },
   chatMessages: {
     flex: 1,
-    paddingHorizontal: 6,
+    paddingHorizontal: 20,
   },
   messageBubble: {
     padding: 12,

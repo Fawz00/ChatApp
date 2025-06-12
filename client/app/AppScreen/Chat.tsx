@@ -10,16 +10,32 @@ import {
   useWindowDimensions,
   Platform,
   BackHandler,
+  Image,
 } from "react-native";
-import { Ionicons } from '@expo/vector-icons';
+import { CompositeScreenProps } from '@react-navigation/native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { DrawerScreenProps } from '@react-navigation/drawer';
 import { API_URL, ChatScheme, MessageScheme, useAuth, UserScheme } from "../api/AuthProvider";
 import { SimpleModal } from "../components/modals/simple-modal";
 import ChatListSidebar from "../components/chatlist-sidebar";
 import MessagesView from "../components/messages-view";
 
+type RootDrawerParamList = {
+  App: undefined;
+};
+
+type AppStackParamList = {
+  Chats: undefined;
+};
+
+export type Props = CompositeScreenProps<
+  NativeStackScreenProps<AppStackParamList, 'Chats'>,
+  DrawerScreenProps<RootDrawerParamList, 'App'>
+>;
+
 const isWeb = Platform.OS === "web";
 
-export default function ChatScreen() {
+export default function ChatScreen(screenProps: Props) {
   const [getModal, setModal] = useState({
     message: '',
     isLoading: false,
@@ -27,7 +43,6 @@ export default function ChatScreen() {
   });
   const { token, validate } = useAuth();
   const [currentUserData, setCurrentUserData] = useState<UserScheme | undefined>(undefined);
-  const [chatScrollView, setChatScrollView] = useState<ScrollView | null>(null);
   const [groupList, setGroupList] = useState<ChatScheme[]>([]);
   const [privateChatList, setPrivateChatList] = useState<ChatScheme[]>([]);
   const [loadedChat, setLoadedChat] = useState('');
@@ -152,6 +167,7 @@ export default function ChatScreen() {
       
       {(loadedChat === '' || isLargeScreen) && (
         <ChatListSidebar
+          screenProps={screenProps}
           groupList={groupList}
           privateChatList={privateChatList}
           currentUserData={currentUserData}
@@ -164,10 +180,34 @@ export default function ChatScreen() {
       {loadedChat !== '' && (
         <MessagesView
           loadedChat={loadedChat}
+          setLoadedChat={setLoadedChat}
           getModal={getModal}
           setModal={setModal}
           currentUserData={currentUserData}
         />
+      )}
+
+      {(loadedChat === '' && isLargeScreen) && (
+        <View
+          style={{
+            flex: 1,
+            justifyContent: "center",
+          }}>
+            
+          {/* Welcome Message */}
+          <View style={styles.welcomeSection}>
+            <Image
+              alt=""
+              style={styles.logoImage}
+              source={require('../../assets/images/logo_hd.png')}
+            />
+            <Text style={styles.heading}>
+              <Text style={styles.textBlue}>Hey </Text>
+              <Text style={styles.textPink}>There!</Text>
+            </Text>
+            <Text style={styles.subheading}>welcome back</Text>
+          </View>
+        </View>
       )}
 
     </View>
@@ -182,5 +222,33 @@ const styles = StyleSheet.create({
   },
   containerMobile: {
     flexDirection: 'column',
+  },
+
+  welcomeSection: {
+    marginVertical: 24,
+    alignItems: "center",
+  },
+  logoImage: {
+    marginTop: 24,
+    alignSelf: 'center',
+    width: 1080/4,
+    height: 480/4,
+    marginBottom: 20,
+  },
+  heading: {
+    fontSize: 52,
+    fontWeight: 400,
+  },
+  textBlue: {
+    color: "#1e3a8a",
+  },
+  textPink: {
+    color: "#ec4899",
+  },
+  subheading: {
+    fontSize: 18,
+    fontWeight: "500",
+    color: "#111827",
+    marginTop: 8,
   },
 });
