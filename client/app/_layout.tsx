@@ -10,7 +10,9 @@ import Login from "./AuthScreen/login";
 import Register from './AuthScreen/register';
 import ForgotPassword from './AuthScreen/forgot_password';
 import NotFoundScreen from './+not-found';
-import AppDrawerContent from './components/app-drawer-content';
+
+import { AppDrawerNavigator } from './components/drawer/app-drawer-navigation';
+import AppDrawerContent from './components/drawer/app-drawer-content';
 
 const AuthStack = createNativeStackNavigator();
 const AppDrawerNav = createDrawerNavigator();
@@ -27,7 +29,7 @@ const BaseNavigator = () => {
   const { token } = useAuth();
   if(token) {
     return (
-      <MainNavigator/>
+      <AppDrawerNavigator/>
     )
   } else {
     return (
@@ -35,22 +37,6 @@ const BaseNavigator = () => {
     )
   }
 };
-
-const MainNavigator = () => (
-  <AppDrawerNav.Navigator
-    initialRouteName="WeitNah"
-    screenOptions={({navigation}) => {
-      return {
-        drawerStyle: {
-          width: 400,
-        },
-      };
-    }}
-    drawerContent={(props) => <AppDrawerContent {...props} />}
-  >
-    <AppDrawerNav.Screen name="WeitNah" component={ChatScreen} />
-  </AppDrawerNav.Navigator>
-);
 
 const AuthNavigator = () => (
   <AuthStack.Navigator

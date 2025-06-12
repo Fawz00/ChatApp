@@ -16,7 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { API_URL, useAuth } from "../api/AuthProvider";
-import { SimpleModal } from "../components/simple-modal";
+import { SimpleModal } from "../components/modals/simple-modal";
 type AuthScreenNavigationProp = NativeStackNavigationProp<any>;
 interface IndexProps {
   navigation: AuthScreenNavigationProp;
@@ -88,6 +88,7 @@ export default function Register({ navigation }: IndexProps) {
           if (responseJson.token) {
             login(responseJson.token as string);
             setModal({...getModal, visible: false, message: 'Success!', isLoading: false});
+            navigation.navigate("login");
           } else {
             setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
           }

@@ -16,7 +16,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { API_URL, useAuth } from "../api/AuthProvider";
-import { SimpleModal } from "../components/simple-modal";
+import { SimpleModal } from "../components/modals/simple-modal";
 type AuthScreenNavigationProp = NativeStackNavigationProp<any>;
 interface IndexProps {
   navigation: AuthScreenNavigationProp;

@@ -4,7 +4,7 @@ import { Storage } from 'expo-storage'
 import { Platform } from 'react-native';
 
 //#region Constants
-export const API_URL = 'http://10.4.21.164:5000/api';
+export const API_URL = 'http://192.168.7.42:5000/api';
 
 export interface ChatScheme {
   _id: string;
@@ -39,18 +39,12 @@ export interface MessageScheme {
   createdAt: string;
   updatedAt: string;
 }
-export enum SidebarContent {
-  CHAT_LIST = 'chat_list',
-  SETTINGS = 'settings',
-}
 
 interface AuthContextType {
     token: string | null;
     login: (newToken: string) => void;
     logout: () => void;
     validate: () => Promise<UserScheme | undefined>;
-    setOpenSettings: (content: SetStateAction<boolean>) => void;
-    openSettings: boolean;
 }
 interface StorageAccount {
     token: string;
@@ -60,7 +54,6 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
     const [token, setToken] = useState<string | null>(null);
-    const [openSettings, setOpenSettings] = useState(false);
 
     useEffect(() => {
         loadAccount();
@@ -155,7 +148,7 @@ export const AuthProvider = ({ children }: PropsWithChildren<{}>) => {
     };
 
     return (
-        <AuthContext.Provider value={{ token, validate, login, logout, setOpenSettings, openSettings }}>
+        <AuthContext.Provider value={{ token, validate, login, logout }}>
             {children}
         </AuthContext.Provider>
     );

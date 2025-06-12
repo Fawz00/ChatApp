@@ -1,25 +1,42 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform, Dimensions, useWindowDimensions } from 'react-native';
 import { UserScheme, ChatScheme } from '../api/AuthProvider'; // Pastikan path ini benar
-import { Ionicons } from '@expo/vector-icons'; // Jika ada ikon tambahan yang ingin Anda gunakan
+import { Feather, Ionicons } from '@expo/vector-icons'; // Jika ada ikon tambahan yang ingin Anda gunakan
 
-interface ChatSidebar {
+interface ChatListSidebar {
   currentUserData: UserScheme | undefined;
   groupList: ChatScheme[];
   privateChatList: ChatScheme[];
   loadedChat: string;
   setLoadedChat: (chatId: string) => void;
 }
+const isWeb = Platform.OS === "web";
 
-export default function ChatSidebar({
+export default function ChatListSidebar({
   currentUserData,
   groupList,
   privateChatList,
   loadedChat,
   setLoadedChat,
-}: ChatSidebar) {
+}: ChatListSidebar) {
+  const [search, setSearch] = useState("");
+
+  let screenWidth = Dimensions.get("window").width;
+    const window = useWindowDimensions();
+    const isLargeScreen = screenWidth > 720;
+
   return (
-    <View style={styles.sidebar}>
+    <View style={[styles.sidebar, !isLargeScreen && styles.sidebarMobile]}>
+      {isWeb && (
+        <style type="text/css">
+          {`
+        input:focus {
+          outline: none !important;
+        }
+          `}
+        </style>
+      )}
+
       <Text style={styles.logo}>Chat</Text>
 
       {/* Profile Card */}
@@ -27,6 +44,17 @@ export default function ChatSidebar({
         <View style={styles.avatarPlaceholder} />
         <Text style={styles.username}>{currentUserData?.username || currentUserData?.email || "Me"}</Text>
         <Text style={styles.status}>{currentUserData?.description || ""}</Text>
+      </View>
+
+      {/* Search */}
+      <View style={styles.inputWrapper}>
+        <Feather name="search" size={20} color="#666" style={styles.icon} />
+        <TextInput
+          placeholder="Search"
+          style={styles.input}
+          placeholderTextColor="#666"
+          onChangeText={text => setSearch(text)}
+        />
       </View>
 
       {/* Teams Section */}
@@ -105,6 +133,13 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderColor: '#e5e7eb',
   },
+  sidebarMobile: {
+    width: '100%',
+    padding: 16,
+    backgroundColor: '#ffffff',
+    borderRightWidth: 1,
+    borderColor: '#e5e7eb',
+  },
   logo: {
     fontSize: 22,
     fontWeight: 'bold',
@@ -129,8 +164,30 @@ const styles = StyleSheet.create({
     color: 'green',
     fontSize: 12,
   },
+  inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 2,
+    borderBottomColor: "#e0e0e0",
+    marginBottom: 24,
+    paddingBottom: 6,
+  },
+  icon: {
+    marginRight: 8,
+  },
+  input: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(229, 231, 235, 0.5)', // Light gray background
+  },
   teamContainer: {
     marginBottom: 24,
+    paddingBottom: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: "#e0e0e0",
   },
   teamLabel: {
     fontWeight: 'bold',
@@ -141,6 +198,10 @@ const styles = StyleSheet.create({
     overflow: 'scroll',
     gap: 4,
     paddingBottom: 8, // For horizontal scroll indicators
+    backgroundColor: 'rgba(229, 231, 235, 0.5)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   teamCircle: {
     width: 40,

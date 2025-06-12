@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { SimpleModal } from "../components/simple-modal";
+import { SimpleModal } from "../components/modals/simple-modal";
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { API_URL, useAuth } from "../api/AuthProvider";

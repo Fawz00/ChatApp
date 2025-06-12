@@ -1,13 +1,15 @@
 import { DrawerContentComponentProps, DrawerContentScrollView, DrawerItem } from "@react-navigation/drawer";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import { useAuth, UserScheme, SidebarContent } from "../api/AuthProvider";
+import { useAuth, UserScheme } from "../../api/AuthProvider";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import React from "react";
+import { useDrawerContext } from "./app-drawer-navigation";
 
 export default function AppDrawerContent(props: DrawerContentComponentProps) {
   const { state, ...rest } = props;
-  const { logout, validate, setOpenSettings } = useAuth();
+  const { logout, validate } = useAuth();
+  const { openSettings, setOpenSettings } = useDrawerContext();
   const [profile, setProfile] = useState<UserScheme | undefined>(undefined);
 
   const hiddenScreens = ['Hidden'];
