@@ -10,6 +10,7 @@ import {
   Dimensions,
   useWindowDimensions,
   Image,
+  SafeAreaView,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -174,6 +175,11 @@ export default function ForgotPassword({ navigation }: IndexProps) {
   };
 
   return (
+    <SafeAreaView
+      style={{
+        flex: 1,
+      }}
+    >
     <ScrollView contentContainerStyle={styles.container}>
       {isWeb && (
         <style type="text/css">
@@ -362,6 +368,7 @@ export default function ForgotPassword({ navigation }: IndexProps) {
         </View>
       )}
     </ScrollView>
+    </SafeAreaView>
   );
 };
 

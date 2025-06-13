@@ -3,12 +3,12 @@ import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-interface SettingsPanel {
+interface NewChatPanel {
   onClose: () => void;
   isVisible: boolean;
 }
 
-const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
+const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
   const window = useWindowDimensions();
   let screenWidth = Dimensions.get("window").width;
   let screenHeight = Dimensions.get("window").height;
@@ -31,7 +31,7 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
       <View style={styles.modalView}>
         <View style={(isLargeScreen && !isSmallHeight) ? styles.settingsPanel : styles.settingsPanelMobile}>
           <View style={styles.settingsHeader}>
-            <Text style={styles.settingsTitle}>Settings</Text>
+            <Text style={styles.settingsTitle}>New Chat</Text>
             <TouchableOpacity onPress={onClose}>
               <Ionicons name="close" size={24} color="#1f1f1f" />
             </TouchableOpacity>
@@ -41,35 +41,8 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
             style={styles.contentScrollView}
           >
             <View>
-              <Text style={styles.settingsSubtitle}>Privacy</Text>
-              <View style={styles.settingsOption}>
-                <Text style={styles.settingsOptionText}>Account visibility</Text>
-                <TouchableOpacity style={styles.selectButton}>
-                  <Text style={styles.selectButtonText}>Select</Text>
-                  <Ionicons name="chevron-down" size={16} color="#000" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.settingsOption}>
-                <Text style={styles.settingsOptionText}>Show last seen</Text>
-                <TouchableOpacity style={styles.selectButton}>
-                  <Text style={styles.selectButtonText}>Select</Text>
-                  <Ionicons name="chevron-down" size={16} color="#000" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.settingsOption}>
-                <Text style={styles.settingsOptionText}>Show profile photo</Text>
-                <TouchableOpacity style={styles.selectButton}>
-                  <Text style={styles.selectButtonText}>Select</Text>
-                  <Ionicons name="chevron-down" size={16} color="#000" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.settingsOption}>
-                <Text style={styles.settingsOptionText}>About me privacy</Text>
-                <TouchableOpacity style={styles.selectButton}>
-                  <Text style={styles.selectButtonText}>Select</Text>
-                  <Ionicons name="chevron-down" size={16} color="#000" />
-                </TouchableOpacity>
-              </View>
+              <Text style={styles.settingsSubtitle}>誰かな</Text>
+              
             </View>
 
             <View>
@@ -181,4 +154,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SettingsPanel;
+export default NewChatPanel;

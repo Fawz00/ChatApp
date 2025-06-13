@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 type AuthScreenNavigationProp = NativeStackNavigationProp<any>;
@@ -27,6 +28,7 @@ export default function Index({ navigation }: IndexProps) {
   let screenWidth = Dimensions.get("window").width;
   const window = useWindowDimensions();
   const isLargeScreen = screenWidth >= 768;
+  const insets = useSafeAreaInsets();
 
   React.useEffect(() => {
     screenWidth = window.width;
@@ -38,7 +40,7 @@ export default function Index({ navigation }: IndexProps) {
         flex: 1,
       }}
     >
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, {paddingBottom: insets.bottom}]}>
 
         <View style={styles.leftContainer}>
           <View

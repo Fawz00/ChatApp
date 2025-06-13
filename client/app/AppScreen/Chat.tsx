@@ -11,6 +11,7 @@ import {
   Platform,
   BackHandler,
   Image,
+  SafeAreaView,
 } from "react-native";
 import { CompositeScreenProps } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -41,7 +42,7 @@ export default function ChatScreen(screenProps: Props) {
     isLoading: false,
     visible: false,
   });
-  const { token, validate } = useAuth();
+  const { token, validate, logout } = useAuth();
   const [currentUserData, setCurrentUserData] = useState<UserScheme | undefined>(undefined);
   const [groupList, setGroupList] = useState<ChatScheme[]>([]);
   const [privateChatList, setPrivateChatList] = useState<ChatScheme[]>([]);
@@ -118,6 +119,8 @@ export default function ChatScreen(screenProps: Props) {
           } else {
             setPrivateChatList(responseJson.data as ChatScheme[]);
           }
+        } else if (response.status === 401) {
+          logout();
         } else {
           setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
         }
@@ -131,6 +134,11 @@ export default function ChatScreen(screenProps: Props) {
   }
 
   return (
+    <SafeAreaView
+      style={{
+        flex: 1,
+      }}
+    >
     <View style={[styles.container, !isLargeScreen && styles.containerMobile]}>
       {isWeb && (
         <style type="text/css">
@@ -211,6 +219,7 @@ export default function ChatScreen(screenProps: Props) {
       )}
 
     </View>
+    </SafeAreaView>
   );
 }
 

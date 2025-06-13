@@ -24,9 +24,10 @@ export default function ChatListSidebar({
 }: ChatListSidebar) {
   const [search, setSearch] = useState("");
 
-  let screenWidth = Dimensions.get("window").width;
-    const window = useWindowDimensions();
-    const isLargeScreen = screenWidth > 720;
+  const screenWidth = Dimensions.get("window").width;
+  const screenHeight = Dimensions.get("window").height;
+  const isLargeScreen = screenWidth > 720;
+  const isSmallHeight = screenHeight <= 530;
 
   return (
     <View style={isLargeScreen ? styles.sidebar : styles.sidebarMobile}>
@@ -61,15 +62,22 @@ export default function ChatListSidebar({
       </TouchableOpacity>
 
       {/* Profile Card */}
-      <View style={styles.profileCard}>
-        <View style={styles.avatarPlaceholder} />
-        <Text style={styles.username}>{currentUserData?.username || currentUserData?.email || "Me"}</Text>
-        <Text style={styles.status}>{currentUserData?.description || ""}</Text>
-      </View>
+      {!isSmallHeight && (
+        <View style={styles.profileCard}>
+          <View style={styles.avatarPlaceholder} />
+          <Text style={styles.username}>{currentUserData?.username || currentUserData?.email || "Me"}</Text>
+          <Text style={styles.status}>{currentUserData?.description || ""}</Text>
+        </View>
+      )}
 
       {/* Chat menu */}
       <View style={styles.chatMenu}>
-        <Text style={styles.chatTitle}>Chat</Text>
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          { isSmallHeight && (
+            <View style={{padding:21, marginRight: 8}}/>
+          )}
+          <Text style={styles.chatTitle}>Chat</Text>
+        </View>
       </View>
 
       {/* Search */}
@@ -163,6 +171,7 @@ const styles = StyleSheet.create({
   },
   sidebarMobile: {
     width: '100%',
+    height: '100%',
     padding: 16,
     backgroundColor: '#ffffff',
     borderRightWidth: 1,

@@ -5,10 +5,14 @@ import { createContext, useContext, useState } from 'react';
 import AppDrawerContent from './app-drawer-content';
 import ChatScreen from "../../AppScreen/Chat";
 import SettingsPanel from '../modals/settings-panel';
+import { SimpleModal } from '../modals/simple-modal';
+import NewChatPanel from '../modals/new-chat';
 
 interface DrawerContextType {
   openSettings: boolean;
   setOpenSettings: (value: boolean) => void;
+  createChat: boolean;
+  setCreateChat: (value: boolean) => void;
 }
 
 type RootDrawerParamList = {
@@ -33,9 +37,13 @@ const AppStack = () => {
 
 export const AppDrawerNavigator = () => {
   const [openSettings, setOpenSettings] = useState(false);
+  const [createChat, setCreateChat] = useState(false);
 
   return (
-    <DrawerContext.Provider value={{ openSettings, setOpenSettings }}>
+    <DrawerContext.Provider value={{ openSettings, setOpenSettings, createChat, setCreateChat }}>
+
+      {/* Create New Chat */}
+      <NewChatPanel isVisible={createChat} onClose={() => setCreateChat(false)} />
 
       {/* Settings */}
       <SettingsPanel isVisible={openSettings} onClose={() => setOpenSettings(false)} />

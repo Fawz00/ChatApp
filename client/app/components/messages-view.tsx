@@ -11,6 +11,12 @@ import {
 import { API_URL, MessageScheme, useAuth, UserScheme } from "../api/AuthProvider";
 import React from "react";
 
+interface ModalProps {
+  message: string;
+  isLoading: boolean;
+  visible: boolean;
+  onClose: () => void;
+}
 
 interface MessagesView {
   loadedChat: string;
@@ -35,7 +41,7 @@ export default function MessagesView({
   setModal,
   currentUserData,
 }: MessagesView) {
-  const { token } = useAuth();
+  const { token, logout } = useAuth();
   const [chatScrollView, setChatScrollView] = useState<ScrollView | null>(null);
   const [messages, setMessages] = useState<MessageScheme[]>([]);
   const [message, setMessage] = useState("");
@@ -82,6 +88,8 @@ export default function MessagesView({
         const responseJson = await response.json();
         if (response.ok) {
           setMessages(responseJson.data as MessageScheme[]);
+        } else if (response.status === 401) {
+          logout();
         } else {
           setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
         }
@@ -119,8 +127,10 @@ export default function MessagesView({
       if (response.ok) {
         setMessage("");
         handleLoadChatMessages();
+      } else if (response.status === 401) {
+        logout();
       } else {
-        setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, invalid server response.'});
+        setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
       }
     } catch (error) {
       setModal({...getModal, visible: true, isLoading: false, message: `An error occurred, unable to connect the server.\n${error instanceof Error ? error.message : 'Unknown error'}`});
