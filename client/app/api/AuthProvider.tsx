@@ -4,7 +4,7 @@ import { Storage } from 'expo-storage'
 import { Platform } from 'react-native';
 
 //#region Constants
-export const API_URL = 'http://192.168.7.221:5000/api';
+export const API_URL = 'http://10.10.119.149:5000/api';
 
 export interface ChatScheme {
   _id: string;
@@ -36,6 +36,8 @@ export interface MessageScheme {
   content: string;
   media?: string;
   type: 'text' | 'image' | 'file';
+  isDelivered?: UserScheme[];
+  isRead?: UserScheme[];
   createdAt: string;
   updatedAt: string;
 }

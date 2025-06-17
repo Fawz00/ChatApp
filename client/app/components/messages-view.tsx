@@ -8,15 +8,10 @@ import {
   TouchableOpacity,
   TextInput,
 } from "react-native";
-import { API_URL, MessageScheme, useAuth, UserScheme } from "../api/AuthProvider";
+import { API_URL, MessageScheme, useAuth, UserScheme, ChatScheme } from "../api/AuthProvider";
 import React from "react";
-
-interface ModalProps {
-  message: string;
-  isLoading: boolean;
-  visible: boolean;
-  onClose: () => void;
-}
+import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 
 interface MessagesView {
   loadedChat: string;
@@ -43,14 +38,17 @@ export default function MessagesView({
 }: MessagesView) {
   const { token, logout } = useAuth();
   const [chatScrollView, setChatScrollView] = useState<ScrollView | null>(null);
+  const [chatDetails, setChatDetails] = useState<ChatScheme | undefined>(undefined);
   const [messages, setMessages] = useState<MessageScheme[]>([]);
   const [message, setMessage] = useState("");
+  
 
   // On loaded chat change, fetch the messages for the selected chat
   React.useEffect(() => {
     if (!loadedChat) return;
     setMessages([]); // Clear previous messages
     handleLoadChatMessages();
+    handleGetChatDetails();
   }, [loadedChat]);
 
   // Scroll to the end of the chat messages when new messages are added
@@ -102,6 +100,44 @@ export default function MessagesView({
     }
   }
 
+  // Fetch chat details for groups or private chats
+  const handleGetChatDetails = async () => {
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Request timed out'));
+        }, 7000);
+      });
+
+      const response = await Promise.race(
+        [
+          fetch(`${API_URL}/chat/${loadedChat}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            }
+          })
+        , timeoutPromise]
+      );
+
+      if (response instanceof Response) {
+        const responseJson = await response.json();
+        if (response.ok) {
+          setChatDetails(responseJson as ChatScheme);
+        } else if (response.status === 401) {
+          logout();
+        } else {
+          setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
+        }
+      } else {
+        setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, invalid server response.'});
+      }
+    } catch (error) {
+      setModal({...getModal, visible: true, isLoading: false, message: `An error occurred, unable to connect the server.\n${error instanceof Error ? error.message : 'Unknown error'}`});
+      console.error('An error occurred:', error);
+    }
+  }
+
   // Handle sending a message
   const handleSend = async () => {
     if (!message.trim()) return;
@@ -138,6 +174,98 @@ export default function MessagesView({
     }
   };
 
+  // handlePickImage
+  const handlePickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+      });
+      if (!result.canceled && result.assets.length > 0) {
+        const image = result.assets[0];
+        await handleSendMedia(image.uri, image.mimeType || 'image/jpeg', 'image');
+      }
+    } catch (error) {
+      console.error("Image pick error:", error);
+    }
+  };
+
+  // handlePickFile
+  const handlePickFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
+      });
+
+      if (result.type === 'success') {
+        await handleSendMedia(result.uri, result.mimeType || 'application/octet-stream', 'file');
+      }
+    } catch (error) {
+      console.error("File pick error:", error);
+    }
+  };
+
+  // handleSendMedia
+  const handleSendMedia = async (uri: string, mimeType: string, type: "image" | "file") => {
+    try {
+      setModal({ ...getModal, isLoading: true });
+
+      const fileName = uri.split('/').pop() || 'file';
+      const fileExt = fileName.split('.').pop();
+
+      const formData = new FormData();
+      formData.append('chatId', loadedChat);
+      formData.append('type', type);
+      formData.append('file', {
+        uri,
+        name: fileName,
+        type: mimeType,
+      } as any);
+
+      const response = await fetch(`${API_URL}/chat/send`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+        body: formData,
+      });
+
+      const responseJson = await response.json();
+      if (response.ok) {
+        handleLoadChatMessages();
+      } else if (response.status === 401) {
+        logout();
+      } else {
+        setModal({
+          ...getModal,
+          visible: true,
+          isLoading: false,
+          message: responseJson.message || 'Upload failed',
+        });
+      }
+    } catch (error) {
+      console.error("Send media error:", error);
+      setModal({
+        ...getModal,
+        visible: true,
+        isLoading: false,
+        message: `Failed to send media.\n${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    }
+  };
+
+  const getChatName = () => {
+    let chatName: string;
+    if (chatDetails?.isGroup) {
+      chatName = chatDetails?.name || "Unknown Groupp";
+    } else {
+      const otherUser = chatDetails?.participants.find(A => A._id !== currentUserData?._id);
+      chatName = otherUser?.username || "Unknown User";
+    }
+    return chatName;
+  }
+
   return (
     <View style={styles.chatWindow}>
       <View style={styles.chatHeader}>
@@ -149,8 +277,8 @@ export default function MessagesView({
           </TouchableOpacity>
           <View style={styles.chatAvatar} />
         </View>
-        <View>
-          <Text style={styles.chatName}>Jodye</Text>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={styles.chatName}>{getChatName()}</Text>
           <Text style={styles.status}>Active</Text>
         </View>
         <View style={styles.chatHeaderActions}>
@@ -165,20 +293,58 @@ export default function MessagesView({
           setChatScrollView(ref);
         }}
       >
-        {messages.map(msg => (
-          <View
-            key={msg._id}
-            style={[styles.messageBubble, msg.sender._id === currentUserData?._id ? styles.myMessage : styles.otherMessage]}
-          >
-            <Text style={styles.messageText}>{msg.content}</Text>
-            <Text style={styles.messageTime}>{new Date(msg.updatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</Text>
-          </View>
-        ))}
+        {messages.map(msg => {
+          console.log("Message:", msg);
+          const isMyMessage = msg.sender._id === currentUserData?._id;
+          return (
+            <View
+              key={msg._id}
+              style={[
+                styles.messageBubble,
+                isMyMessage ? styles.myMessage : styles.otherMessage
+              ]}
+            >
+              {!isMyMessage && (
+                <Text style={styles.sendernameText}>
+                  {msg.sender.username || msg.sender.email || "Unknown"}
+                </Text>
+              )}
+              <Text style={styles.messageText}>{msg.content}</Text>
+              <Text style={styles.messageTime}>
+{new Date(msg.updatedAt).toLocaleTimeString([], {
+  hour: "numeric",
+  minute: "2-digit",
+})}{" "}
+{isMyMessage && (
+  <Ionicons
+    // name={
+    //   msg.isRead
+    //     ? "checkmark-done"
+    //     : msg.isDelivered
+    //     ? "checkmark"
+    //     : "time-outline"
+    // }
+    name="checkmark-done"
+    size={14}
+    color={true ? "#4f46e5" : "#6b7280"}
+  />
+)}
+</Text>
+            </View>
+          );
+        })}
       </ScrollView>
 
       <View style={styles.inputBar}>
+        <TouchableOpacity onPress={handlePickImage} style={styles.mediaButton}>
+          <Ionicons name="image" size={24} color="#4f46e5" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={handlePickFile} style={styles.mediaButton}>
+          <Ionicons name="attach" size={24} color="#4f46e5" />
+        </TouchableOpacity>
+
         <TextInput
-          style={[styles.inputField, {height: 48}]}
+          style={[styles.inputField, { height: 48 }]}
           placeholder="Type here"
           value={message}
           multiline
@@ -249,6 +415,10 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 14,
   },
+  sendernameText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
   messageTime: {
     fontSize: 10,
     color: '#6b7280',
@@ -281,8 +451,7 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+  mediaButton: {
+    marginHorizontal: 4,
+  },
 });
-
-function setModal(arg0: any) {
-  throw new Error("Function not implemented.");
-}

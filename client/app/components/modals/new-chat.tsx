@@ -1,7 +1,7 @@
 // components/SettingsPanel.tsx
-import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, useWindowDimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, useWindowDimensions, TextInput } from 'react-native';
+import { Feather, Ionicons } from '@expo/vector-icons';
 
 interface NewChatPanel {
   onClose: () => void;
@@ -9,6 +9,7 @@ interface NewChatPanel {
 }
 
 const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
+  const [search, setSearch] = useState("");
   const window = useWindowDimensions();
   let screenWidth = Dimensions.get("window").width;
   let screenHeight = Dimensions.get("window").height;
@@ -38,22 +39,18 @@ const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
           </View>
 
           <ScrollView
-            style={styles.contentScrollView}
-          >
-            <View>
-              <Text style={styles.settingsSubtitle}>誰かな</Text>
-              
-            </View>
-
-            <View>
-              <Text style={styles.settingsSubtitle}>Storage</Text>
-              <View style={styles.settingsOption}>
-                <Text style={styles.settingsOptionText}>Download Media</Text>
-                <TouchableOpacity style={styles.selectButton}>
-                  <Text style={styles.selectButtonText}>Select</Text>
-                  <Ionicons name="chevron-down" size={16} color="#000" />
-                </TouchableOpacity>
-              </View>
+            style={styles.contentScrollView} >
+              <View>
+              <Text style={styles.settingsSubtitle}>seacrh Username </Text>
+                    <View style={styles.inputWrapper}>
+              <Feather name="search" size={20} color="#666" style={styles.icon} />
+              <TextInput
+                placeholder="Search"
+                style={styles.input}
+                placeholderTextColor="#666"
+                onChangeText={(text) => {setSearch(text)}}
+              />
+      </View>
             </View>
           </ScrollView>
 
@@ -151,6 +148,25 @@ const styles = StyleSheet.create({
   selectButtonText: {
     marginRight: 5,
     color: '#000',
+  },
+  icon: {
+    marginRight: 8,
+  },
+   inputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 2,
+    borderBottomColor: "#e0e0e0",
+    marginBottom: 24,
+    paddingBottom: 6,
+  },
+  input: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(229, 231, 235, 0.5)', // Light gray background
   },
 });
 

@@ -2,6 +2,7 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, useWindowDimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import SimpleDropdownProps from '../simple-dropdown';
 
 interface SettingsPanel {
   onClose: () => void;
@@ -14,6 +15,39 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
   let screenHeight = Dimensions.get("window").height;
   const isLargeScreen = screenWidth > 720;
   const isSmallHeight = screenHeight <= 530;
+
+  //=====================//
+  // State for dropdowns //
+  //=====================//
+
+  // Account visibility dropdown
+  const [accountVisibilityOpen, setAccountVisibilityOpen] = React.useState(false);
+  const [selectedAccountVisibility, setSelectedAccountVisibility] = React.useState("Everyone");
+  const accountVisibilityOptions = ["Everyone", "My Contacts", "Nobody"];
+  
+  // Last seen dropdown
+  const [lastSeenOpen, setLastSeenOpen] = React.useState(false);
+  const [selectedLastSeen, setSelectedLastSeen] = React.useState("Everyone");
+  const lastSeenOptions = ["Everyone", "My Contacts", "Nobody"];
+
+  // Profile photo dropdown
+  const [photoProfileOpen, setPhotoProfileOpen] = React.useState(false);
+  const [selectedPhotoProfile, setSelectedPhotoProfile] = React.useState("Everyone");
+  const photoProfileOptions = ["Everyone", "My Contacts", "Nobody"];
+  
+  // about me dropdown
+  const [AboutMeOpen, setAboutMeOpen] = React.useState(false);
+  const [selectedAboutMe, setSelectedAboutMe] = React.useState("Everyone");
+  const AboutMeOptions = ["Everyone", "My Contacts", "Nobody"];
+
+  // download media dropdown
+  const [downloadMediaOpen, setDownloadMediaOpen] = React.useState(false);
+  const [selectedDownloadMedia, setSelectedDownloadMedia] = React.useState("Everyone");
+  const downloadMediaOptions = ["Never", "Ask", "Always"];
+
+  //====================//
+  // useEffect listener //
+  //====================//
 
   // On window resize, update the screen width
   React.useEffect(() => {
@@ -42,49 +76,48 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
           >
             <View>
               <Text style={styles.settingsSubtitle}>Privacy</Text>
-              <View style={styles.settingsOption}>
-                <Text style={styles.settingsOptionText}>Account visibility</Text>
-                <TouchableOpacity style={styles.selectButton}>
-                  <Text style={styles.selectButtonText}>Select</Text>
-                  <Ionicons name="chevron-down" size={16} color="#000" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.settingsOption}>
-                <Text style={styles.settingsOptionText}>Show last seen</Text>
-                <TouchableOpacity style={styles.selectButton}>
-                  <Text style={styles.selectButtonText}>Select</Text>
-                  <Ionicons name="chevron-down" size={16} color="#000" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.settingsOption}>
-                <Text style={styles.settingsOptionText}>Show profile photo</Text>
-                <TouchableOpacity style={styles.selectButton}>
-                  <Text style={styles.selectButtonText}>Select</Text>
-                  <Ionicons name="chevron-down" size={16} color="#000" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.settingsOption}>
-                <Text style={styles.settingsOptionText}>About me privacy</Text>
-                <TouchableOpacity style={styles.selectButton}>
-                  <Text style={styles.selectButtonText}>Select</Text>
-                  <Ionicons name="chevron-down" size={16} color="#000" />
-                </TouchableOpacity>
-              </View>
+              <SimpleDropdownProps
+                displayText="Account visibility"
+                dropdownOptions={accountVisibilityOptions}
+                visibility={accountVisibilityOpen}
+                setVisibility={setAccountVisibilityOpen}
+                selected={selectedAccountVisibility}
+                setSelected={setSelectedAccountVisibility} />
+              <SimpleDropdownProps
+                displayText="Show last seen"
+                dropdownOptions={lastSeenOptions}
+                visibility={lastSeenOpen}
+                setVisibility={setLastSeenOpen}
+                selected={selectedLastSeen}
+                setSelected={setSelectedLastSeen} />
+              <SimpleDropdownProps
+                displayText="Show profile photo"
+                dropdownOptions={photoProfileOptions}
+                visibility={photoProfileOpen}
+                setVisibility={setPhotoProfileOpen}
+                selected={selectedPhotoProfile}
+                setSelected={setSelectedPhotoProfile} />
+              <SimpleDropdownProps
+                displayText="About me"
+                dropdownOptions={AboutMeOptions}
+                visibility={AboutMeOpen}
+                setVisibility={setAboutMeOpen}
+                selected={selectedAboutMe}
+                setSelected={setSelectedAboutMe}/>
             </View>
-
             <View>
               <Text style={styles.settingsSubtitle}>Storage</Text>
-              <View style={styles.settingsOption}>
-                <Text style={styles.settingsOptionText}>Download Media</Text>
-                <TouchableOpacity style={styles.selectButton}>
-                  <Text style={styles.selectButtonText}>Select</Text>
-                  <Ionicons name="chevron-down" size={16} color="#000" />
-                </TouchableOpacity>
-              </View>
+              <SimpleDropdownProps
+                displayText="Download media"
+                dropdownOptions={downloadMediaOptions}
+                visibility={downloadMediaOpen}
+                setVisibility={setDownloadMediaOpen}
+                selected={selectedDownloadMedia}
+                setSelected={setSelectedDownloadMedia}/>
             </View>
           </ScrollView>
 
-        </View>
+        </View>en
       </View>
     </Modal>
   );
@@ -156,11 +189,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
     backgroundColor: '#efefef',
     borderRadius: 8,
     paddingVertical: 10,
     paddingHorizontal: 15,
+  },
+  settingsOptionWrap: {
+    marginBottom: 20,
   },
   settingsOptionText: {
     fontSize: 16,
@@ -178,6 +213,24 @@ const styles = StyleSheet.create({
   selectButtonText: {
     marginRight: 5,
     color: '#000',
+  },
+
+  dropdownOptions: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    marginTop: 5,
+    paddingVertical: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  dropdownOption: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
 });
 
