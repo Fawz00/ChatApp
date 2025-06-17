@@ -274,6 +274,7 @@ exports.getMessages = async (req, res) => {
     // Get messages for the chat
     let query = Message.find({ chatId })
       .populate('sender', 'email')
+      .populate('sender', 'username')
       .sort('createdAt');
 
     if (limit > 0) {
