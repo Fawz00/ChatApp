@@ -66,6 +66,7 @@ exports.getChatDetail = async (req, res) => {
 
     const chat = await Chat.findById(chatId)
       .populate('participants', 'email')
+      .populate('participants', 'username')
       .populate('lastMessage');
 
     if (!chat) {
@@ -292,6 +293,42 @@ exports.getMessages = async (req, res) => {
     res.status(500).json({ message: error.message || 'Server error' });
   }
 };
+
+// Set message as delivered
+exports.setMessageDelivered = async (req, res) => {
+  const { messageId } = req.params;
+
+  try {
+    const message = await Message.findById(messageId);
+    if (!message) return res.status(404).json({ message: 'Message not found' });
+    if (!message.isDelivered.includes(req.user.toString())) {
+      message.isDelivered.push(req.user);
+      await message.save();
+    }
+    res.json({ message: 'Message marked as delivered' });
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
+  }
+}
+
+// Set message as read
+exports.setMessageRead = async (req, res) => {
+  const { messageId } = req.params;
+
+  try {
+    const message = await Message
+      .findById(messageId)
+      .populate('sender', 'email username profilePhoto');
+    if (!message) return res.status(404).json({ message: 'Message not found' });
+    if (!message.isRead.includes(req.user.toString())) {
+      message.isRead.push(req.user);
+      await message.save();
+    }
+    res.json({ message: 'Message marked as read', message });
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
+  }
+}
 
 // Delete message
 exports.deleteMessage = async (req, res) => {
