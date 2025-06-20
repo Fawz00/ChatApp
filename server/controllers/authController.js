@@ -191,3 +191,28 @@ exports.deleteAccount = async (req, res) => {
     res.status(500).json({ message: error.message || 'Server error' });
   }
 };
+
+exports.findUser = async (req, res) => {
+  const { keywordInput } = req.params;
+
+  try {
+    const keyword = String(keywordInput || '');
+
+    console.log('Searching for users with keyword:', keyword);
+
+    const users = await User.find({
+      $or: [
+        { email: { $regex: keyword, $options: 'i' } },
+        { username: { $regex: keyword, $options: 'i' } }
+      ]
+    }).select('-password -resetPasswordToken -resetPasswordExpires');
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ message: 'No users found' });
+    }
+
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message || 'Server error' });
+  }
+};

@@ -12,7 +12,9 @@ const {
   editMessage,
   deleteMessage,
   editGroupChat,
-  getAllChatsForUser
+  getAllChatsForUser,
+  setMessageDelivered,
+  setMessageRead,
 } = require('../controllers/chatController');
 
 // Chat
@@ -27,5 +29,8 @@ router.post('/send', auth, upload.single('media'), sendMessage);
 router.get('/:chatId/messages', auth, getMessages);
 router.put('/message/:messageId', auth, editMessage);
 router.delete('/message/:messageId', auth, deleteMessage);
+
+router.post('/:messageId/read', auth, setMessageRead);
+router.post('/:messageId/deliver', auth, setMessageDelivered);
 
 module.exports = router;

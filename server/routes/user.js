@@ -7,7 +7,8 @@ const {
   getSelfProfile,
   getUserProfile,
   editProfile,
-  deleteAccount
+  deleteAccount,
+  findUser
 } = require('../controllers/authController');
 
 router.get('/me', auth, getSelfProfile);
@@ -24,5 +25,7 @@ router.put(
 );
 
 router.delete('/delete', auth, deleteAccount);
+router.get('/find/:keywordInput', auth, findUser);
+
 
 module.exports = router;
