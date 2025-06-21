@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, useWindowDimensions, TextInput, FlatList } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { API_URL, useAuth, UserScheme } from '@/app/api/AuthProvider';
+import CheckBox from '@react-native-community/checkbox';
 
 interface NewChatPanel {
   onClose: () => void;
@@ -13,6 +14,13 @@ const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
   const { token, logout } = useAuth();
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<UserScheme[]>([]);
+
+  const [createGroupState, setCreateGroupState] = useState(0);
+  const [addedUserId, setAddedUserId] = useState<string[]>([]);
+  const [groupName, setGroupName] = useState("");
+  const [groupDescription, setGroupDescription] = useState("");
+  const [groupPhoto, setGroupPhoto] = useState<string | null>(null);
+
   const window = useWindowDimensions();
   let screenWidth = Dimensions.get("window").width;
   let screenHeight = Dimensions.get("window").height;
@@ -48,8 +56,8 @@ const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
           );
           
           if (response instanceof Response) {
-            const responseJson = await response.json();
             if (response.ok) {
+              const responseJson = await response.json();
               setUsers(responseJson);
             } else if (response.status === 401) {
               logout();
@@ -71,6 +79,89 @@ const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
     return () => clearTimeout(debounceFetch); // Cleanup on unmount
   }, [search]);
 
+  // ============================================
+  // API Calls
+  // ============================================
+
+  // Fungsi untuk membuat chat baru
+  const handleCreateChat = async (addedId: string) => {
+    try {
+      console.log("Creating chat with user ID:", addedId);
+      const formData = new FormData();
+      formData.append("userIds", JSON.stringify([addedId]));
+      formData.append("isGroup", "false");
+
+      const response = await fetch(`${API_URL}/chat/create`, {
+        method: "POST",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        const responseJson = await response.json();
+
+        setGroupName("");
+        setGroupDescription("");
+        setGroupPhoto(null);
+        setUsers([]);
+        setAddedUserId([]);
+        setCreateGroupState(0);
+      } else {
+        const errorData = await response.json();
+        console.error("Error creating group:", errorData.message);
+      }
+    } catch (error) {
+      console.error("Error creating group:", error);
+    }
+  }
+
+  // Fungsi untuk membuat grup baru
+  const handleCreateGroup = async () => {
+    if (!groupName.trim() || addedUserId.length === 0) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("userIds", JSON.stringify(addedUserId));
+      formData.append("isGroup", "true");
+      formData.append("name", groupName);
+      
+      if (groupDescription) {
+        formData.append("description", groupDescription);
+      }
+      if (groupPhoto) {
+        formData.append("groupPhoto", new Blob([], {
+          type: 'image/jpeg',
+        }));
+      }
+
+      const response = await fetch(`${API_URL}/chat/create`, {
+        method: "POST",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        const responseJson = await response.json();
+
+        setGroupName("");
+        setGroupDescription("");
+        setGroupPhoto(null);
+        setUsers([]);
+        setAddedUserId([]);
+        setCreateGroupState(0);
+      } else {
+        const errorData = await response.json();
+        console.error("Error creating group:", errorData.message);
+      }
+    } catch (error) {
+      console.error("Error creating group:", error);
+    }
+  };
+
   return (
     <Modal
       animationType="fade"
@@ -88,28 +179,82 @@ const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
           </View>
 
           <ScrollView style={styles.contentScrollView}>
-            <View>
-              <Text style={styles.settingsSubtitle}>Search Username</Text>
-              <View style={styles.inputWrapper}>
-                <Feather name="search" size={20} color="#666" style={styles.icon} />
-                <TextInput
-                  placeholder="Search"
-                  style={styles.input}
-                  placeholderTextColor="#666"
-                  onChangeText={(text) => setSearch(text)}
+            {/* Create Chat */}
+            { createGroupState === 0 && (
+              <View>
+                <Text style={styles.settingsSubtitle}>Search Username</Text>
+                <View style={styles.inputWrapper}>
+                  <Feather name="search" size={20} color="#666" style={styles.icon} />
+                  <TextInput
+                    placeholder="Search"
+                    style={styles.input}
+                    placeholderTextColor="#666"
+                    onChangeText={(text) => setSearch(text)}
+                  />
+                </View>
+                <TouchableOpacity
+                  style={styles.createGroupButton}
+                  onPress={() => setCreateGroupState(1)}
+                >
+                  <Text style={styles.createGroupButtonText}>Create Group</Text>
+                </TouchableOpacity>
+                <FlatList
+                  data={users}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.settingsOption}
+                    onPress={() => handleCreateChat(item.id)}
+                  >
+                      <Text style={styles.settingsOptionText}>{item.username} ({item.email})</Text>
+                    </TouchableOpacity>
+                  )}
+                  ListEmptyComponent={<Text style={styles.noResultsText}>No results found</Text>}
                 />
               </View>
-              <FlatList
-                data={users}
-                keyExtractor={(item) => item._id}
-                renderItem={({ item }) => (
-                  <TouchableOpacity style={styles.settingsOption}>
-                    <Text style={styles.settingsOptionText}>{item.username} ({item.email})</Text>
+            )}
+
+            {/* Create Group */}
+            { createGroupState === 1 && (
+              <View>
+                <Text style={styles.settingsSubtitle}>Create Group</Text>
+                <View style={styles.inputWrapper}>
+                  <Feather name="search" size={20} color="#666" style={styles.icon} />
+                  <TextInput
+                    placeholder="Search"
+                    style={styles.input}
+                    placeholderTextColor="#666"
+                    onChangeText={(text) => setSearch(text)}
+                  />
+                  <TouchableOpacity
+                    style={styles.createGroupButton}
+                    onPress={handleCreateGroup}
+                  >
+                    <Text style={styles.createGroupButtonText}>Continue</Text>
                   </TouchableOpacity>
-                )}
-                ListEmptyComponent={<Text style={styles.noResultsText}>No results found</Text>}
-              />
-            </View>
+                </View>
+                <FlatList
+                  data={users}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity style={styles.settingsOption}>
+                      <Text style={styles.settingsOptionText}>{item.username} ({item.email})</Text>
+                      <CheckBox
+                        disabled={false}
+                        onValueChange={(val) => {
+                          if (val) {
+                            setAddedUserId([...addedUserId, item.id]);
+                          } else {
+                            setAddedUserId(addedUserId.filter(id => id !== item.id));
+                          }
+                        }}
+                      />
+                    </TouchableOpacity>
+                  )}
+                  ListEmptyComponent={<Text style={styles.noResultsText}>No results found</Text>}
+                />
+              </View>
+            )}
           </ScrollView>
 
         </View>
@@ -230,6 +375,20 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     backgroundColor: 'rgba(229, 231, 235, 0.5)', // Light gray background
+  },
+  groupCreationSection: {
+    marginTop: 20,
+  },
+  createGroupButton: {
+    backgroundColor: '#4f46e5',
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  createGroupButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
 });
 

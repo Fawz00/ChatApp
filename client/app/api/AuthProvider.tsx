@@ -7,7 +7,7 @@ import { Platform } from 'react-native';
 export const API_URL = 'https://weitnahchat.my.id/api';
 
 export interface ChatScheme {
-  _id: string;
+  id: string;
   name?: string;
   description?: String,
   groupPhoto?: String,
@@ -19,7 +19,7 @@ export interface ChatScheme {
   lastMessage: MessageScheme | undefined;
 }
 export interface UserScheme {
-  _id: string;
+  id: string;
   email: string;
   username?: string;
   profilePhoto?: string;
@@ -30,7 +30,7 @@ export interface UserScheme {
   updatedAt: string;
 }
 export interface MessageScheme {
-  _id: string;
+  id: string;
   chat: string;
   sender: UserScheme;
   content: string;

@@ -97,14 +97,14 @@ export default function ChatListSidebar({
         <ScrollView contentContainerStyle={styles.teamsRow}>
           {groupList.map((val) => (
             <TouchableOpacity
-              key={val._id}
+              key={val.id}
               style={[
                 styles.teamButton,
-                loadedChat === val._id && styles.activeChatItem // Highlight active chat
+                loadedChat === val.id && styles.activeChatItem // Highlight active chat
               ]}
               onPress={() => {
-                if (loadedChat !== val._id) {
-                  setLoadedChat(val._id);
+                if (loadedChat !== val.id) {
+                  setLoadedChat(val.id);
                 }
               }}
             >
@@ -127,19 +127,19 @@ export default function ChatListSidebar({
             if (val.isGroup) {
               chatName = val.name || "Unknown Group";
             } else {
-              const otherUser = val.participants.find(A => A._id !== currentUserData?._id);
+              const otherUser = val.participants.find(A => A.id !== currentUserData?.id);
               chatName = otherUser ? otherUser.username || "Unknown User" : "Unknown User";
             }
             return (
               <TouchableOpacity
-                key={val._id}
+                key={val.id}
                 style={[
                   styles.chatItem,
-                  loadedChat === val._id && styles.activeChatItem // Highlight active chat
+                  loadedChat === val.id && styles.activeChatItem // Highlight active chat
                 ]}
                 onPress={() => {
-                  if (loadedChat !== val._id) {
-                    setLoadedChat(val._id);
+                  if (loadedChat !== val.id) {
+                    setLoadedChat(val.id);
                   }
                 }}
               >

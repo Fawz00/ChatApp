@@ -284,7 +284,6 @@ const sendScheduledMessage = async (scheduledText: string) => {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
         },
         body: formData,
       });
@@ -318,7 +317,7 @@ const sendScheduledMessage = async (scheduledText: string) => {
     if (chatDetails?.isGroup) {
       chatName = chatDetails?.name || "Unknown Groupp";
     } else {
-      const otherUser = chatDetails?.participants.find(A => A._id !== currentUserData?._id);
+      const otherUser = chatDetails?.participants.find(A => A.id !== currentUserData?.id);
       chatName = otherUser?.username || "Unknown User";
     }
     return chatName;
@@ -353,10 +352,10 @@ const sendScheduledMessage = async (scheduledText: string) => {
       >
         {messages.map(msg => {
           console.log("Message:", msg);
-          const isMyMessage = msg.sender._id === currentUserData?._id;
+          const isMyMessage = msg.sender.id === currentUserData?.id;
           return (
             <View
-              key={msg._id}
+              key={msg.id}
               style={[
                 styles.messageBubble,
                 isMyMessage ? styles.myMessage : styles.otherMessage

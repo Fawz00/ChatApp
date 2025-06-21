@@ -1,8 +1,19 @@
 // components/SettingsPanel.tsx
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, useWindowDimensions } from 'react-native';
+import {
+  Modal,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Dimensions,
+  useWindowDimensions,
+  Image,
+  Switch,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import SimpleDropdownProps from '../simple-dropdown';
+import * as ImagePicker from 'expo-image-picker';
 
 interface SettingsPanel {
   onClose: () => void;
@@ -16,40 +27,22 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
   const isLargeScreen = screenWidth > 720;
   const isSmallHeight = screenHeight <= 530;
 
-  //=====================//
-  // State for dropdowns //
-  //=====================//
+  const [profileImage, setProfileImage] = React.useState<string | null>(null);
+  const [isDarkMode, setIsDarkMode] = React.useState(false);
 
-  // Account visibility dropdown
-  const [accountVisibilityOpen, setAccountVisibilityOpen] = React.useState(false);
-  const [selectedAccountVisibility, setSelectedAccountVisibility] = React.useState("Everyone");
-  const accountVisibilityOptions = ["Everyone", "My Contacts", "Nobody"];
-  
-  // Last seen dropdown
-  const [lastSeenOpen, setLastSeenOpen] = React.useState(false);
-  const [selectedLastSeen, setSelectedLastSeen] = React.useState("Everyone");
-  const lastSeenOptions = ["Everyone", "My Contacts", "Nobody"];
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
 
-  // Profile photo dropdown
-  const [photoProfileOpen, setPhotoProfileOpen] = React.useState(false);
-  const [selectedPhotoProfile, setSelectedPhotoProfile] = React.useState("Everyone");
-  const photoProfileOptions = ["Everyone", "My Contacts", "Nobody"];
-  
-  // about me dropdown
-  const [AboutMeOpen, setAboutMeOpen] = React.useState(false);
-  const [selectedAboutMe, setSelectedAboutMe] = React.useState("Everyone");
-  const AboutMeOptions = ["Everyone", "My Contacts", "Nobody"];
+    if (!result.canceled && result.assets.length > 0) {
+      setProfileImage(result.assets[0].uri);
+    }
+  };
 
-  // download media dropdown
-  const [downloadMediaOpen, setDownloadMediaOpen] = React.useState(false);
-  const [selectedDownloadMedia, setSelectedDownloadMedia] = React.useState("Everyone");
-  const downloadMediaOptions = ["Never", "Ask", "Always"];
-
-  //====================//
-  // useEffect listener //
-  //====================//
-
-  // On window resize, update the screen width
   React.useEffect(() => {
     screenWidth = window.width;
     screenHeight = window.height;
@@ -63,7 +56,13 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
       onRequestClose={onClose}
     >
       <View style={styles.modalView}>
-        <View style={(isLargeScreen && !isSmallHeight) ? styles.settingsPanel : styles.settingsPanelMobile}>
+        <View
+          style={
+            isLargeScreen && !isSmallHeight
+              ? styles.settingsPanel
+              : styles.settingsPanelMobile
+          }
+        >
           <View style={styles.settingsHeader}>
             <Text style={styles.settingsTitle}>Settings</Text>
             <TouchableOpacity onPress={onClose}>
@@ -71,53 +70,38 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            style={styles.contentScrollView}
-          >
-            <View>
-              <Text style={styles.settingsSubtitle}>Privacy</Text>
-              <SimpleDropdownProps
-                displayText="Account visibility"
-                dropdownOptions={accountVisibilityOptions}
-                visibility={accountVisibilityOpen}
-                setVisibility={setAccountVisibilityOpen}
-                selected={selectedAccountVisibility}
-                setSelected={setSelectedAccountVisibility} />
-              <SimpleDropdownProps
-                displayText="Show last seen"
-                dropdownOptions={lastSeenOptions}
-                visibility={lastSeenOpen}
-                setVisibility={setLastSeenOpen}
-                selected={selectedLastSeen}
-                setSelected={setSelectedLastSeen} />
-              <SimpleDropdownProps
-                displayText="Show profile photo"
-                dropdownOptions={photoProfileOptions}
-                visibility={photoProfileOpen}
-                setVisibility={setPhotoProfileOpen}
-                selected={selectedPhotoProfile}
-                setSelected={setSelectedPhotoProfile} />
-              <SimpleDropdownProps
-                displayText="About me"
-                dropdownOptions={AboutMeOptions}
-                visibility={AboutMeOpen}
-                setVisibility={setAboutMeOpen}
-                selected={selectedAboutMe}
-                setSelected={setSelectedAboutMe}/>
-            </View>
-            <View>
-              <Text style={styles.settingsSubtitle}>Storage</Text>
-              <SimpleDropdownProps
-                displayText="Download media"
-                dropdownOptions={downloadMediaOptions}
-                visibility={downloadMediaOpen}
-                setVisibility={setDownloadMediaOpen}
-                selected={selectedDownloadMedia}
-                setSelected={setSelectedDownloadMedia}/>
+          <ScrollView style={styles.contentScrollView}>
+            <View style={{ marginBottom: 30 }}>
+              <Text style={styles.settingsSubtitle}>Account</Text>
+
+              <TouchableOpacity
+                style={styles.profileImageWrapper}
+                onPress={pickImage}
+              >
+                {profileImage ? (
+                  <Image source={{ uri: profileImage }} style={styles.profileImage} />
+                ) : (
+                  <View style={styles.profilePlaceholder}>
+                    <Ionicons name="camera" size={30} color="#888" />
+                    <Text style={{ color: '#888', marginTop: 6 }}>
+                      Upload Profile Photo
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <View style={[styles.settingsOption, { marginTop: 20 }]}>
+                <Text style={styles.settingsOptionText}>Dark Theme</Text>
+                <Switch
+                  value={isDarkMode}
+                  onValueChange={setIsDarkMode}
+                  thumbColor={isDarkMode ? "#333" : "#ccc"}
+                  trackColor={{ false: "#eee", true: "#999" }}
+                />
+              </View>
             </View>
           </ScrollView>
-
-        </View>en
+        </View>
       </View>
     </Modal>
   );
@@ -194,9 +178,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 15,
   },
-  settingsOptionWrap: {
-    marginBottom: 20,
-  },
   settingsOptionText: {
     fontSize: 16,
     color: '#000',
@@ -205,32 +186,24 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: 20,
   },
-  selectButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 5,
+  profileImageWrapper: {
+    alignSelf: 'center',
+    marginBottom: 12,
   },
-  selectButtonText: {
-    marginRight: 5,
-    color: '#000',
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
   },
-
-  dropdownOptions: {
-    backgroundColor: '#fff',
+  profilePlaceholder: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     borderWidth: 1,
     borderColor: '#ccc',
-    borderRadius: 8,
-    marginTop: 5,
-    paddingVertical: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 2,
-  },
-  dropdownOption: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
   },
 });
 
