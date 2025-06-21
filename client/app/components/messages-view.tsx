@@ -9,9 +9,11 @@ import {
   TextInput,
 } from "react-native";
 import { API_URL, MessageScheme, useAuth, UserScheme, ChatScheme } from "../api/AuthProvider";
+import WebDateTimePicker from "./dateTimePicker";
 import React from "react";
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface MessagesView {
   loadedChat: string;
@@ -43,7 +45,11 @@ export default function MessagesView({
   const [message, setMessage] = useState("");
   
 
-  // On loaded chat change, fetch the messages for the selected chat
+  // On loaded chat change, fetch the messages for the selected 
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduleTime, setScheduleTime] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
   React.useEffect(() => {
     if (!loadedChat) return;
     setMessages([]); // Clear previous messages
@@ -174,9 +180,61 @@ export default function MessagesView({
     }
   };
 
+  // Handle scheduling a message
+  const handleScheduleMessage = (time: Date) => {
+    if (!message.trim()) return;
+
+    const delay = time.getTime() - new Date().getTime();
+    if (delay <= 0) {
+      alert("Scheduled time must be in the future.");
+      return;
+    }
+
+    const scheduledMessage = message.trim();
+    setMessage(""); // Kosongkan input
+    setModal({ ...getModal, visible: true, message: "Message scheduled!", isLoading: false });
+    setIsScheduling(false);
+    setScheduleTime(null);
+
+    setTimeout(() => {
+      sendScheduledMessage(scheduledMessage);
+    }, delay);
+  };
+
+
+const sendScheduledMessage = async (scheduledText: string) => {
+  if (!loadedChat || !token) return;
+
+  try {
+    const formData = new FormData();
+    formData.append("chatId", loadedChat);
+    formData.append("content", scheduledText);
+    formData.append("type", "text");
+
+    const response = await fetch(`${API_URL}/chat/send`, {
+      method: "POST",
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const responseJson = await response.json();
+    if (response.ok) {
+      handleLoadChatMessages();
+    } else {
+      setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred while sending the scheduled message.'});
+    }
+  } catch (error) {
+    console.error("Scheduled message send error:", error);
+    setModal({...getModal, visible: true, isLoading: false, message: "Failed to send scheduled message."});
+  }
+};
+
+
   // handlePickImage
   const handlePickImage = async () => {
-    try {
+  try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 1,
@@ -197,8 +255,8 @@ export default function MessagesView({
         type: '*/*',
       });
 
-      if (result.type === 'success') {
-        await handleSendMedia(result.uri, result.mimeType || 'application/octet-stream', 'file');
+      if ((result.output?.length || 0) > 0 && result.assets && result.assets.length > 0) {
+        await handleSendMedia(result.assets[0].uri, result.assets[0].mimeType || 'application/octet-stream', 'file');
       }
     } catch (error) {
       console.error("File pick error:", error);
@@ -311,29 +369,62 @@ export default function MessagesView({
               )}
               <Text style={styles.messageText}>{msg.content}</Text>
               <Text style={styles.messageTime}>
-{new Date(msg.updatedAt).toLocaleTimeString([], {
-  hour: "numeric",
-  minute: "2-digit",
-})}{" "}
-{isMyMessage && (
-  <Ionicons
-    // name={
-    //   msg.isRead
-    //     ? "checkmark-done"
-    //     : msg.isDelivered
-    //     ? "checkmark"
-    //     : "time-outline"
-    // }
-    name="checkmark-done"
-    size={14}
-    color={true ? "#4f46e5" : "#6b7280"}
-  />
-)}
-</Text>
+                {new Date(msg.updatedAt).toLocaleTimeString([], {
+                hour: "numeric",
+                minute: "2-digit",
+              })}{" "}
+              {isMyMessage && (
+                <Ionicons
+                  // name={
+                  //   msg.isRead
+                  //     ? "checkmark-done"
+                  //     : msg.isDelivered
+                  //     ? "checkmark"
+                  //     : "time-outline"
+                  // }
+                  name="checkmark-done"
+                  size={14}
+                  color={true ? "#4f46e5" : "#6b7280"}
+                />
+              )}
+              
+              </Text>
             </View>
           );
         })}
       </ScrollView>
+
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
+       {true && (
+          <DateTimePicker
+            value={scheduleTime || new Date()}
+            mode="datetime"
+            display="default"
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(false);
+              if (selectedDate) {
+                setScheduleTime(selectedDate);
+
+                // Format waktu untuk ditampilkan
+                const timeString = selectedDate.toLocaleTimeString([], {
+                  hour: "numeric",
+                  minute: "2-digit"
+                });
+                const dateString = selectedDate.toLocaleDateString();
+
+                setModal({
+                  ...getModal,
+                  visible: true,
+                  isLoading: false,
+                  message: `Message will be sent at ${timeString} on ${dateString}`,
+                });
+
+                handleScheduleMessage(selectedDate); // Jadwalkan pengiriman
+              }
+            }}
+          />
+        )}
+      </View>
 
       <View style={styles.inputBar}>
         <TouchableOpacity onPress={handlePickImage} style={styles.mediaButton}>
@@ -353,10 +444,27 @@ export default function MessagesView({
           returnKeyType="send"
           blurOnSubmit={false}
         />
-        <TouchableOpacity onPress={handleSend} style={styles.sendButton}>
+
+        {/* Tombol schedule baru */}
+        <TouchableOpacity
+          onPress={() => {
+            setIsScheduling(isScheduling => !isScheduling);
+            setShowDatePicker(showDatePicker => !showDatePicker);
+          }}
+              style={[styles.mediaButton, { backgroundColor: "#e0e7ff", padding: 8, borderRadius: 8, marginRight: 4 }]}
+        >
+          <Ionicons name="time-outline" size={20} color="#1e3a8a" />
+        </TouchableOpacity>
+
+        {/* Tombol Send biasa */}
+        <TouchableOpacity
+          onPress={handleSend}
+          style={styles.sendButton}
+        >
           <Text style={styles.sendButtonText}>Send</Text>
         </TouchableOpacity>
       </View>
+
     </View>
   );
 };

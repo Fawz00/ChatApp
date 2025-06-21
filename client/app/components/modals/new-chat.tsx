@@ -22,6 +22,13 @@ const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
     screenHeight = window.height;
   }, [window.width, window.height]);
 
+  // On keyword change, update the search state
+  React.useEffect(() => {
+    if (search.length > 0) {
+      console.log(`Searching for: ${search}`);
+    }
+  }, [search]);
+
   return (
     <Modal
       animationType="fade"
@@ -37,20 +44,21 @@ const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
               <Ionicons name="close" size={24} color="#1f1f1f" />
             </TouchableOpacity>
           </View>
+          
 
           <ScrollView
             style={styles.contentScrollView} >
-              <View>
-              <Text style={styles.settingsSubtitle}>seacrh Username </Text>
-                    <View style={styles.inputWrapper}>
-              <Feather name="search" size={20} color="#666" style={styles.icon} />
-              <TextInput
-                placeholder="Search"
-                style={styles.input}
-                placeholderTextColor="#666"
-                onChangeText={(text) => {setSearch(text)}}
-              />
-      </View>
+            <View>
+              <Text style={styles.settingsSubtitle}>Seacrh Username </Text>
+                <View style={styles.inputWrapper}>
+                  <Feather name="search" size={20} color="#666" style={styles.icon} />
+                  <TextInput
+                    placeholder="Search"
+                    style={styles.input}
+                    placeholderTextColor="#666"
+                    onChangeText={(text) => {setSearch(text)}}
+                  />
+              </View>
             </View>
           </ScrollView>
 

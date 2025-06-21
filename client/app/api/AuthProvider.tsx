@@ -4,7 +4,7 @@ import { Storage } from 'expo-storage'
 import { Platform } from 'react-native';
 
 //#region Constants
-export const API_URL = 'http://10.10.119.149:5000/api';
+export const API_URL = 'https://weitnahchat.my.id/api';
 
 export interface ChatScheme {
   _id: string;
@@ -38,6 +38,7 @@ export interface MessageScheme {
   type: 'text' | 'image' | 'file';
   isDelivered?: UserScheme[];
   isRead?: UserScheme[];
+  sceduledAt?: string;
   createdAt: string;
   updatedAt: string;
 }

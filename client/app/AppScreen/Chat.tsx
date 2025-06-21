@@ -19,7 +19,9 @@ import { DrawerScreenProps } from '@react-navigation/drawer';
 import { API_URL, ChatScheme, MessageScheme, useAuth, UserScheme } from "../api/AuthProvider";
 import { SimpleModal } from "../components/modals/simple-modal";
 import ChatListSidebar from "../components/chatlist-sidebar";
-import MessagesView from "../components/messages-view";
+import MessagesView from "../components/messages-view";   
+import DateTimePicker from '@react-native-community/datetimepicker';
+
 
 type RootDrawerParamList = {
   App: undefined;
@@ -42,11 +44,14 @@ export default function ChatScreen(screenProps: Props) {
     isLoading: false,
     visible: false,
   });
+  
   const { token, validate, logout } = useAuth();
   const [currentUserData, setCurrentUserData] = useState<UserScheme | undefined>(undefined);
   const [groupList, setGroupList] = useState<ChatScheme[]>([]);
   const [privateChatList, setPrivateChatList] = useState<ChatScheme[]>([]);
   const [loadedChat, setLoadedChat] = useState('');
+  const [isSettingsVisible, setSettingsVisible] = useState(false);
+
 
 
   let screenWidth = Dimensions.get("window").width;

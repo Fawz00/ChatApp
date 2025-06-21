@@ -61,7 +61,7 @@ export default function Register({ navigation }: IndexProps) {
         const timeoutPromise = new Promise((_, reject) => {
           setTimeout(() => {
             reject(new Error('Request timed out'));
-          }, 7000);
+          }, 12000);
         });
   
         const response = await Promise.race(
