@@ -1,7 +1,8 @@
 // components/SettingsPanel.tsx
-import React, { useState } from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, useWindowDimensions, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, useWindowDimensions, TextInput, FlatList } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { API_URL, useAuth, UserScheme } from '@/app/api/AuthProvider';
 
 interface NewChatPanel {
   onClose: () => void;
@@ -9,7 +10,9 @@ interface NewChatPanel {
 }
 
 const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
+  const { token, logout } = useAuth();
   const [search, setSearch] = useState("");
+  const [users, setUsers] = useState<UserScheme[]>([]);
   const window = useWindowDimensions();
   let screenWidth = Dimensions.get("window").width;
   let screenHeight = Dimensions.get("window").height;
@@ -17,16 +20,55 @@ const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
   const isSmallHeight = screenHeight <= 530;
 
   // On window resize, update the screen width
-  React.useEffect(() => {
+  useEffect(() => {
     screenWidth = window.width;
     screenHeight = window.height;
   }, [window.width, window.height]);
 
-  // On keyword change, update the search state
-  React.useEffect(() => {
-    if (search.length > 0) {
-      console.log(`Searching for: ${search}`);
-    }
+  // Fetch users based on search input
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (search.length > 0) {
+        try {
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('Request timed out'));
+            }, 7000);
+          });
+
+          const response = await Promise.race(
+            [
+              fetch(`${API_URL}/user/find/${search}`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                }
+              })
+            , timeoutPromise]
+          );
+          
+          if (response instanceof Response) {
+            const responseJson = await response.json();
+            if (response.ok) {
+              setUsers(responseJson);
+            } else if (response.status === 401) {
+              logout();
+            }
+          }
+
+        } catch (error) {
+          console.error("Error fetching users:", error);
+        }
+      } else {
+        setUsers([]);
+      }
+    };
+
+    const debounceFetch = setTimeout(() => {
+      fetchUsers();
+    }, 300); // Debounce 300ms
+
+    return () => clearTimeout(debounceFetch); // Cleanup on unmount
   }, [search]);
 
   return (
@@ -44,21 +86,29 @@ const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
               <Ionicons name="close" size={24} color="#1f1f1f" />
             </TouchableOpacity>
           </View>
-          
 
-          <ScrollView
-            style={styles.contentScrollView} >
+          <ScrollView style={styles.contentScrollView}>
             <View>
-              <Text style={styles.settingsSubtitle}>Seacrh Username </Text>
-                <View style={styles.inputWrapper}>
-                  <Feather name="search" size={20} color="#666" style={styles.icon} />
-                  <TextInput
-                    placeholder="Search"
-                    style={styles.input}
-                    placeholderTextColor="#666"
-                    onChangeText={(text) => {setSearch(text)}}
-                  />
+              <Text style={styles.settingsSubtitle}>Search Username</Text>
+              <View style={styles.inputWrapper}>
+                <Feather name="search" size={20} color="#666" style={styles.icon} />
+                <TextInput
+                  placeholder="Search"
+                  style={styles.input}
+                  placeholderTextColor="#666"
+                  onChangeText={(text) => setSearch(text)}
+                />
               </View>
+              <FlatList
+                data={users}
+                keyExtractor={(item) => item._id}
+                renderItem={({ item }) => (
+                  <TouchableOpacity style={styles.settingsOption}>
+                    <Text style={styles.settingsOptionText}>{item.username} ({item.email})</Text>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={<Text style={styles.noResultsText}>No results found</Text>}
+              />
             </View>
           </ScrollView>
 
@@ -144,6 +194,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
   },
+  noResultsText: {
+    textAlign: 'center',
+    color: '#666',
+    marginTop: 20,
+  },
   contentScrollView: {
     flex: 1,
     paddingRight: 20,
@@ -160,7 +215,7 @@ const styles = StyleSheet.create({
   icon: {
     marginRight: 8,
   },
-   inputWrapper: {
+  inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: 2,
