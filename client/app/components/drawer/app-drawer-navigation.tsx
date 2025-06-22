@@ -7,8 +7,12 @@ import ChatScreen from "../../AppScreen/Chat";
 import SettingsPanel from '../modals/settings-panel';
 import { SimpleModal } from '../modals/simple-modal';
 import NewChatPanel from '../modals/new-chat';
+import { useAuth, UserScheme } from '@/app/api/AuthProvider';
+import React from 'react';
 
 interface DrawerContextType {
+  currentUserData: UserScheme | undefined;
+  base64ToBlob: (base64Data: string) => Blob;
   openSettings: boolean;
   setOpenSettings: (value: boolean) => void;
   createChat: boolean;
@@ -36,11 +40,51 @@ const AppStack = () => {
 }
 
 export const AppDrawerNavigator = () => {
+  const { validate, logout } = useAuth();
+  const [currentUserData, setCurrentUserData] = useState<UserScheme | undefined>(undefined);
+
   const [openSettings, setOpenSettings] = useState(false);
   const [createChat, setCreateChat] = useState(false);
 
+  React.useEffect(() => {
+    validateToken();
+  }, []);
+
+  async function validateToken() {
+    try {
+      const profile = await validate();
+      setCurrentUserData(profile);
+      return profile;
+    } catch (error) {
+      console.error('Token validation failed:', error);
+    }
+    return undefined;
+  };
+
+  function base64ToBlob(dataUrl: string) {
+    const matches = dataUrl.match(/^data:(.*);base64,(.*)$/);
+    if (!matches || matches.length !== 3) {
+      throw new Error("Invalid base64 URI");
+    }
+
+    const mime = matches[1];
+    const base64Data = matches[2];
+
+    const byteCharacters = atob(base64Data);
+    const byteArrays = [];
+
+    for (let i = 0; i < byteCharacters.length; i += 512) {
+      const slice = byteCharacters.slice(i, i + 512);
+      const byteNumbers = new Array(slice.length).fill(0).map((_, j) => slice.charCodeAt(j));
+      const byteArray = new Uint8Array(byteNumbers);
+      byteArrays.push(byteArray);
+    }
+
+    return new Blob(byteArrays, { type: mime });
+  }
+
   return (
-    <DrawerContext.Provider value={{ openSettings, setOpenSettings, createChat, setCreateChat }}>
+    <DrawerContext.Provider value={{ currentUserData, base64ToBlob, openSettings, setOpenSettings, createChat, setCreateChat }}>
 
       {/* Create New Chat */}
       <NewChatPanel isVisible={createChat} onClose={() => setCreateChat(false)} />

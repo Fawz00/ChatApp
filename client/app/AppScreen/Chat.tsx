@@ -21,6 +21,7 @@ import { SimpleModal } from "../components/modals/simple-modal";
 import ChatListSidebar from "../components/chatlist-sidebar";
 import MessagesView from "../components/messages-view";   
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useDrawerContext } from "../components/drawer/app-drawer-navigation";
 
 
 type RootDrawerParamList = {
@@ -46,34 +47,18 @@ export default function ChatScreen(screenProps: Props) {
   });
   
   const { token, validate, logout } = useAuth();
-  const [currentUserData, setCurrentUserData] = useState<UserScheme | undefined>(undefined);
+  const { currentUserData } = useDrawerContext();
   const [groupList, setGroupList] = useState<ChatScheme[]>([]);
   const [privateChatList, setPrivateChatList] = useState<ChatScheme[]>([]);
   const [loadedChat, setLoadedChat] = useState('');
-  const [isSettingsVisible, setSettingsVisible] = useState(false);
-
-
 
   let screenWidth = Dimensions.get("window").width;
   const window = useWindowDimensions();
   const isLargeScreen = screenWidth > 720;
 
-  // On load, validate the token
+  // On load
   React.useEffect(() => {
-    const validateToken = async () => {
-      try {
-        const profile = await validate();
-        setCurrentUserData(profile);
-      } catch (error) {
-        console.error('Token validation failed:', error);
-        setModal({
-          message: `An error occurred, unable to connect the server.\n${error instanceof Error ? error.message : 'Unknown error'}`,
-          isLoading: false,
-          visible: true,
-        });
-      }
-    };
-    validateToken();
+    // Nothing
   }, []);
 
   // On window resize, update the screen width

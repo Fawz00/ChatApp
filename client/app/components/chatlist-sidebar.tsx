@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Platform, Dimensions, useWindowDimensions } from 'react-native';
-import { UserScheme, ChatScheme } from '../api/AuthProvider'; // Pastikan path ini benar
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput, Platform, Dimensions, useWindowDimensions } from 'react-native';
+import { UserScheme, ChatScheme, API_URL_BASE } from '../api/AuthProvider'; // Pastikan path ini benar
 import { Feather, Ionicons } from '@expo/vector-icons'; // Jika ada ikon tambahan yang ingin Anda gunakan
 import { Props } from '../AppScreen/Chat';
 
@@ -64,7 +64,15 @@ export default function ChatListSidebar({
       {/* Profile Card */}
       {!isSmallHeight && (
         <View style={styles.profileCard}>
-          <View style={styles.avatarPlaceholder} />
+          { currentUserData?.profilePhoto ? (
+            <Image source={{ uri: `${API_URL_BASE}/${currentUserData.profilePhoto}`.replace(/\\/g, "/") }}
+              style={styles.avatarPlaceholder}
+            />
+          ) : (
+            <View style={styles.avatarPlaceholder}>
+              <Text style={styles.teamText}>{currentUserData?.username?.charAt(0).toUpperCase() || ""}</Text>
+            </View>
+          )}
           <Text style={styles.username}>{currentUserData?.username || currentUserData?.email || "Me"}</Text>
           <Text style={styles.status}>{currentUserData?.description || ""}</Text>
         </View>
@@ -108,9 +116,15 @@ export default function ChatListSidebar({
                 }
               }}
             >
-              <View style={styles.teamCircle}>
-                <Text style={styles.teamText}>{val.name?.charAt(0).toUpperCase() || "_"}</Text>
-              </View>
+              { val.groupPhoto ? (
+                <Image source={{ uri: `${API_URL_BASE}/${val.groupPhoto}`.replace(/\\/g, "/") }}
+                  style={styles.teamCircle}
+                />
+              ) : (
+                <View style={styles.teamCircle}>
+                  <Text style={styles.teamText}>{val.name?.charAt(0).toUpperCase() || ""}</Text>
+                </View>
+              )}
               <Text style={styles.teamName}>{val.name || "Unknown Group"}</Text>
             </TouchableOpacity>
           ))}
@@ -124,6 +138,7 @@ export default function ChatListSidebar({
           {privateChatList.map((val) => {
             let chatName: string;
             let lastMessage: string = val.lastMessage?.content || "No messages yet";
+
             if (val.isGroup) {
               chatName = val.name || "Unknown Group";
             } else {
@@ -143,7 +158,15 @@ export default function ChatListSidebar({
                   }
                 }}
               >
-                <View style={styles.chatAvatar} />
+                { val.groupPhoto ? (
+                  <Image source={{ uri: `${API_URL_BASE}/${val.groupPhoto}`.replace(/\\/g, "/") }}
+                    style={styles.chatAvatar}
+                  />
+                ) : (
+                  <View style={styles.chatAvatar}>
+                    <Text style={styles.teamText}>{val.name?.charAt(0).toUpperCase() || ""}</Text>
+                  </View>
+                )}
                 <View style={styles.chatItemContent}>
                   <Text style={styles.chatName}>{chatName}</Text>
                   <Text style={styles.chatPreview} numberOfLines={1}>{lastMessage}</Text>
@@ -285,6 +308,8 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#cbd5e1',
     marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   chatItemContent: {
     flex: 1, // Allows text to take available space

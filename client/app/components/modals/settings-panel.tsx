@@ -1,5 +1,5 @@
 // components/SettingsPanel.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   View,
@@ -11,9 +11,14 @@ import {
   useWindowDimensions,
   Image,
   Switch,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { SimpleModal } from './simple-modal';
+import { API_URL, useAuth } from '@/app/api/AuthProvider';
+import mime from 'mime';
+import { useDrawerContext } from '../drawer/app-drawer-navigation';
 
 interface SettingsPanel {
   onClose: () => void;
@@ -21,21 +26,68 @@ interface SettingsPanel {
 }
 
 const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
+  const { token, logout } = useAuth();
+  const { currentUserData, base64ToBlob } = useDrawerContext();
+
+  const [getModal, setModal] = useState({
+    message: '',
+    isLoading: false,
+    visible: false,
+  });
+
+  const [profileImage, setProfileImage] = React.useState<string | null>(null);
+  const [username, setUsername] = React.useState("");
+  const [userDescription, setUserDescription] = React.useState("");
+  const [isDarkMode, setIsDarkMode] = React.useState(false);
+
   const window = useWindowDimensions();
   let screenWidth = Dimensions.get("window").width;
   let screenHeight = Dimensions.get("window").height;
   const isLargeScreen = screenWidth > 720;
   const isSmallHeight = screenHeight <= 530;
 
-  const [profileImage, setProfileImage] = React.useState<string | null>(null);
-  const [isDarkMode, setIsDarkMode] = React.useState(false);
+  React.useEffect(() => {
+    setProfileImage(currentUserData?.profilePhoto ? `${API_URL}/${currentUserData.profilePhoto}` : null);
+    setUsername(currentUserData?.username || "");
+    setUserDescription(currentUserData?.description || "");
+  }, []);
+
+  React.useEffect(() => {
+    screenWidth = window.width;
+    screenHeight = window.height;
+  }, [window.width, window.height]);
+
+  // ============================================
+  // Functions
+  // ============================================
+
+  const handleClose = () => {
+    setIsDarkMode(false);
+    setProfileImage(null);
+    setUsername("");
+    setUserDescription("");
+    setModal({ ...getModal, visible: false });
+    onClose();
+  }
 
   const pickImage = async () => {
+    (async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        setModal({
+          visible: true,
+          isLoading: false,
+          message: 'Please allow access to storage to select images.',
+        });
+        return;
+      }
+    })();
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.7,
+      quality: 0.8,
     });
 
     if (!result.canceled && result.assets.length > 0) {
@@ -43,10 +95,54 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
     }
   };
 
-  React.useEffect(() => {
-    screenWidth = window.width;
-    screenHeight = window.height;
-  }, [window.width, window.height]);
+  // ============================================
+  // API Calls
+  // ============================================
+
+  // Function to handle profile update
+  const handleUpdateProfile = async (addedId: string) => {
+    try {
+      const formData = new FormData();
+      if (username) formData.append("username", JSON.stringify([addedId]));
+      if (userDescription) formData.append("description", "false");
+
+      if (profileImage) {
+        if (profileImage.startsWith("data:image")) {
+          const blob = base64ToBlob(profileImage);
+          const file = new File([blob], "profile_photo." + blob.type.split("/")[1], { type: blob.type });
+          formData.append("profilePhoto", file);
+        } else {
+          const imageName = profileImage ? profileImage.split('/').pop() : 'profile_photo.jpg';
+          const mimeType = mime.getType(profileImage);
+          formData.append("profilePhoto", {
+            uri: profileImage,
+            name: imageName,
+            type: mimeType || 'image/jpeg',
+          } as any);
+        }
+      }
+
+      const response = await fetch(`${API_URL}/user/update`, {
+        method: "PUT",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (response.ok) {
+        handleClose();
+      } else if (response.status === 401) {
+        logout();
+      } else {
+        const responseJson = await response.json();
+        setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
+      }
+    } catch (error) {
+      setModal({...getModal, visible: true, isLoading: false, message: `An error occurred, unable to connect the server.\n${error instanceof Error ? error.message : 'Unknown error'}`});
+      console.error('An error occurred:', error);
+    }
+  }
 
   return (
     <Modal
@@ -55,6 +151,15 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
       visible={isVisible}
       onRequestClose={onClose}
     >
+
+      {/* Modal Popup for Error Messages */}
+      <SimpleModal
+        visible={getModal.visible}
+        message={getModal.message}
+        isLoading={getModal.isLoading}
+        onClose={() => setModal({ ...getModal, visible: false })}
+      />
+
       <View style={styles.modalView}>
         <View
           style={
@@ -83,14 +188,32 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
                 ) : (
                   <View style={styles.profilePlaceholder}>
                     <Ionicons name="camera" size={30} color="#888" />
-                    <Text style={{ color: '#888', marginTop: 6 }}>
-                      Upload Profile Photo
+                    <Text style={{ color: '#888', marginTop: 4, paddingBottom: 8 }}>
+                      Upload Photo
                     </Text>
                   </View>
                 )}
               </TouchableOpacity>
 
-              <View style={[styles.settingsOption, { marginTop: 20 }]}>
+              <TextInput
+                placeholder="Username"
+                style={styles.input}
+                placeholderTextColor="#666"
+                onChangeText={(text) => setUsername(text)}
+              />
+
+              <TextInput
+                placeholder="Description"
+                style={styles.input}
+                placeholderTextColor="#666"
+                onChangeText={(text) => setUserDescription(text)}
+              />
+            </View>
+
+            <View style={{ marginBottom: 30 }}>
+              <Text style={styles.settingsSubtitle}>Theme</Text>
+
+              <View style={styles.settingsOption}>
                 <Text style={styles.settingsOptionText}>Dark Theme</Text>
                 <Switch
                   value={isDarkMode}
@@ -100,6 +223,7 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
                 />
               </View>
             </View>
+
           </ScrollView>
         </View>
       </View>
@@ -204,6 +328,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f0f0f0',
+  },
+  input: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(229, 231, 235, 0.5)', // Light gray background
+    marginBottom: 12,
   },
 });
 

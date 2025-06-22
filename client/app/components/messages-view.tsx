@@ -351,7 +351,6 @@ const sendScheduledMessage = async (scheduledText: string) => {
         }}
       >
         {messages.map(msg => {
-          console.log("Message:", msg);
           const isMyMessage = msg.sender.id === currentUserData?.id;
           return (
             <View

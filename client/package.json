@@ -17,7 +17,6 @@
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
     "@expo/vector-icons": "^14.0.2",
-    "@react-native-community/checkbox": "^0.5.20",
     "@react-native-community/datetimepicker": "^8.4.1",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/drawer": "^7.4.1",
@@ -38,6 +37,7 @@
     "expo-symbols": "^0.4.5",
     "expo-system-ui": "^5.0.8",
     "expo-web-browser": "^14.1.6",
+    "mime": "^4.0.7",
     "react": "^19.0.0",
     "react-dom": "19.0.0",
     "react-native": "^0.79.3",
