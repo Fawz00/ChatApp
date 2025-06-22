@@ -173,6 +173,7 @@ export default function MessagesView({
       if (response.ok) {
         setMessage("");
         handleLoadChatMessages();
+        setScheduleTime(null); // Reset schedule time after sending
       } else if (response.status === 401) {
         logout();
       } else {
@@ -237,55 +238,31 @@ export default function MessagesView({
 
 
   // Handle scheduling a message
-  const handleScheduleMessage = (time: Date) => {
-    if (!message.trim()) return;
+        const handleScheduleMessage = (time: Date) => {
+          if (!message.trim()) return;
+          const delay = time.getTime() - new Date().getTime();
+          if (delay <= 0) {
+            alert("Scheduled time must be in the future.");
+            return;
+          }
 
-    const delay = time.getTime() - new Date().getTime();
-    if (delay <= 0) {
-      alert("Scheduled time must be in the future.");
-      return;
-    }
+          const scheduledMessage = message.trim();
 
-    const scheduledMessage = message.trim();
-    setMessage(""); // Kosongkan input
-    setModal({ ...getModal, visible: true, message: "Message scheduled!", isLoading: false });
-    setIsScheduling(false);
-    setScheduleTime(null);
+          // Kosongkan input & reset state
+          setMessage("");
+          setIsScheduling(false);
 
-    setTimeout(() => {
-      sendScheduledMessage(scheduledMessage);
-    }, delay);
-  };
+          setModal({
+            ...getModal,
+            visible: true,
+            isLoading: false,
+            message: `Message will be sent at ${time.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} on ${time.toLocaleDateString()}`,
+          });
 
-
-const sendScheduledMessage = async (scheduledText: string) => {
-  if (!loadedChat || !token) return;
-
-  try {
-    const formData = new FormData();
-    formData.append("chatId", loadedChat);
-    formData.append("content", scheduledText);
-    formData.append("type", "text");
-
-    const response = await fetch(`${API_URL}/chat/send`, {
-      method: "POST",
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    const responseJson = await response.json();
-    if (response.ok) {
-      handleLoadChatMessages();
-    } else {
-      setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred while sending the scheduled message.'});
-    }
-  } catch (error) {
-    console.error("Scheduled message send error:", error);
-    setModal({...getModal, visible: true, isLoading: false, message: "Failed to send scheduled message."});
-  }
-};
+          setTimeout(() => {
+            sendScheduledMessage(scheduledMessage);
+          }, delay);
+        };
 
 
   // handlePickImage
@@ -454,12 +431,12 @@ const sendScheduledMessage = async (scheduledText: string) => {
       </ScrollView>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-       {true && (
+       {showDatePicker && (
           <UniversalDateTimePicker
             value={scheduleTime || new Date()}
             mode="datetime"
             onChange={(event, selectedDate) => {
-              setShowDatePicker(false);
+              setShowDatePicker(false); // Tutup picker setelah pilih waktu
               if (selectedDate) {
                 setScheduleTime(selectedDate);
                 const timeString = selectedDate.toLocaleTimeString([], {
@@ -487,36 +464,53 @@ const sendScheduledMessage = async (scheduledText: string) => {
         <TouchableOpacity onPress={handlePickFile} style={styles.mediaButton}>
           <Ionicons name="attach" size={24} color="#4f46e5" />
         </TouchableOpacity>
+        {scheduleTime && (
+        <View style={styles.scheduledBanner}>
+          <Ionicons name="time-outline" size={16} color="#ef4444" />
+          <Text style={styles.scheduledText}>
+            Scheduled for {scheduleTime.toLocaleString()}
+          </Text>
+          <TouchableOpacity onPress={() => setScheduleTime(null)}>
+            <Ionicons name="close-circle" size={18} color="#9ca3af" />
+          </TouchableOpacity>
+        </View>
+      )}
 
-        <TextInput
-          style={[styles.inputField, { height: 48 }]}
-          placeholder="Type here"
-          value={message}
-          multiline
-          onChangeText={setMessage}
-          onSubmitEditing={handleSend}
-          returnKeyType="send"
-          blurOnSubmit={false}
-        />
-
-        {/* Tombol schedule baru */}
-        <TouchableOpacity
-          onPress={() => {
-            setIsScheduling(isScheduling => !isScheduling);
-            setShowDatePicker(showDatePicker => !showDatePicker);
-          }}
+        {/* Input Field */}
+          <TextInput
+            style={[styles.inputField, { height: 48 }]}
+            placeholder="Type here"
+            value={message}
+            multiline
+            onChangeText={setMessage}
+            onSubmitEditing={handleSend}
+            returnKeyType="send"
+            blurOnSubmit={false}
+          />
+          {/* Tombol Schedule / Cancel Schedule */}
+          {scheduleTime ? (
+            <TouchableOpacity
+              onPress={() => setScheduleTime(null)}
+              style={[styles.mediaButton, { backgroundColor: "#fee2e2", padding: 8, borderRadius: 8, marginRight: 4 }]}
+            >
+              <Ionicons name="close-circle" size={20} color="#b91c1c" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={() => setShowDatePicker(true)}
               style={[styles.mediaButton, { backgroundColor: "#e0e7ff", padding: 8, borderRadius: 8, marginRight: 4 }]}
-        >
-          <Ionicons name="time-outline" size={20} color="#1e3a8a" />
-        </TouchableOpacity>
+            >
+              <Ionicons name="time-outline" size={20} color="#1e3a8a" />
+            </TouchableOpacity>
+          )}
 
-        {/* Tombol Send biasa */}
-        <TouchableOpacity
-          onPress={handleSend}
-          style={styles.sendButton}
-        >
-          <Text style={styles.sendButtonText}>Send</Text>
-        </TouchableOpacity>
+          {/* Tombol Send biasa */}
+          <TouchableOpacity
+            onPress={handleSend}
+            style={styles.sendButton}
+          >
+            <Text style={styles.sendButtonText}>Send</Text>
+          </TouchableOpacity>
       </View>
       <DeleteChatModal
         visible={showDeleteModal}
@@ -618,6 +612,23 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
+  scheduledBanner: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#fef2f2',
+  padding: 8,
+  borderRadius: 8,
+  marginHorizontal: 16,
+  marginBottom: 8,
+  borderWidth: 1,
+  borderColor: '#f87171',
+},
+scheduledText: {
+  flex: 1,
+  marginLeft: 8,
+  fontSize: 12,
+  color: '#b91c1c',
+},
   mediaButton: {
     marginHorizontal: 4,
   },
