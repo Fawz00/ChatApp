@@ -164,15 +164,31 @@ exports.getAllChatsForUser = async (req, res) => {
   const { isGroup, sortBy = 'updatedAt', order = 'desc' } = req.query;
 
   try {
-    const chatWhere = {};
-    if (isGroup === 'true') chatWhere.isGroup = true;
-    if (isGroup === 'false') chatWhere.isGroup = false;
-
     const sort = {};
     sort[sortBy] = order === 'asc' ? 1 : -1;
 
+    const userChats = await Chat.findAll({
+      include: [{
+        model: User,
+        as: 'participants',
+        where: { id: userId },
+        attributes: [], // gak perlu ambil data user di sini
+        through: { attributes: [] }
+      }],
+      attributes: ['id'],
+      raw: true
+    });
+
+const chatIds = userChats.map(c => c.id);
+
+    const where = {
+      id: chatIds
+    };
+    if (isGroup === 'true') where.isGroup = true;
+    if (isGroup === 'false') where.isGroup = false;
+
     const chats = await Chat.findAll({
-      where: chatWhere,
+      where,
       include: [
         {
           model: User,

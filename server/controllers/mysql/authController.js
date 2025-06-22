@@ -156,7 +156,7 @@ exports.editProfile = async (req, res) => {
 
     const user = await User.findByPk(req.user, {attributes: { exclude: ['password']}});
     await user.update(updates);
-    res.json(updatedUser);
+    res.json(user);
   } catch (error) {
     res.status(500).json({ message: error.message || 'Server error' });
   }
