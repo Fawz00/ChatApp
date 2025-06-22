@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { SimpleModal } from './simple-modal';
-import { API_URL, useAuth } from '@/app/api/AuthProvider';
+import { API_URL, useAuth, UserScheme } from '@/app/api/AuthProvider';
 import mime from 'mime';
 import { useDrawerContext } from '../drawer/app-drawer-navigation';
 
@@ -27,7 +27,7 @@ interface SettingsPanel {
 
 const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
   const { token, logout } = useAuth();
-  const { currentUserData, base64ToBlob } = useDrawerContext();
+  const { currentUserData, validateToken, base64ToBlob } = useDrawerContext();
 
   const [getModal, setModal] = useState({
     message: '',
@@ -47,9 +47,13 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
   const isSmallHeight = screenHeight <= 530;
 
   React.useEffect(() => {
-    setProfileImage(currentUserData?.profilePhoto ? `${API_URL}/${currentUserData.profilePhoto}` : null);
-    setUsername(currentUserData?.username || "");
-    setUserDescription(currentUserData?.description || "");
+    validateToken()
+    .then((user) => {
+      setProfileImage(user?.profilePhoto ? `${API_URL}/${user?.profilePhoto}` : null);
+      setUsername(user?.username || "");
+      setUserDescription(user?.description || "");
+      console.log('User data loaded:', user);
+    })
   }, []);
 
   React.useEffect(() => {
@@ -100,11 +104,11 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
   // ============================================
 
   // Function to handle profile update
-  const handleUpdateProfile = async (addedId: string) => {
+  const handleUpdateProfile = async () => {
     try {
       const formData = new FormData();
-      if (username) formData.append("username", JSON.stringify([addedId]));
-      if (userDescription) formData.append("description", "false");
+      if (username) formData.append("username", username);
+      if (userDescription) formData.append("description", userDescription);
 
       if (profileImage) {
         if (profileImage.startsWith("data:image")) {
@@ -198,6 +202,7 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
               <TextInput
                 placeholder="Username"
                 style={styles.input}
+                value={username}
                 placeholderTextColor="#666"
                 onChangeText={(text) => setUsername(text)}
               />
@@ -205,6 +210,7 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
               <TextInput
                 placeholder="Description"
                 style={styles.input}
+                value={userDescription}
                 placeholderTextColor="#666"
                 onChangeText={(text) => setUserDescription(text)}
               />
@@ -225,6 +231,15 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
             </View>
 
           </ScrollView>
+
+          <View style={styles.settingsFooter}>
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={() => handleUpdateProfile()}
+            >
+              <Text style={styles.saveButtonText}>Save</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
@@ -281,7 +296,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 16,
+  },
+  settingsFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
   },
   settingsTitle: {
     fontSize: 24,
@@ -337,6 +358,18 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: 'rgba(229, 231, 235, 0.5)', // Light gray background
     marginBottom: 12,
+  },
+  saveButton: {
+    backgroundColor: '#4f46e5',
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 10,
+    width: '100%',
+  },
+  saveButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
 });
 

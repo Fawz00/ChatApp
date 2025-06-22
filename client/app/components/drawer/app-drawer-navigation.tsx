@@ -12,6 +12,7 @@ import React from 'react';
 
 interface DrawerContextType {
   currentUserData: UserScheme | undefined;
+  validateToken: () => Promise<UserScheme | undefined>;
   base64ToBlob: (base64Data: string) => Blob;
   openSettings: boolean;
   setOpenSettings: (value: boolean) => void;
@@ -84,7 +85,7 @@ export const AppDrawerNavigator = () => {
   }
 
   return (
-    <DrawerContext.Provider value={{ currentUserData, base64ToBlob, openSettings, setOpenSettings, createChat, setCreateChat }}>
+    <DrawerContext.Provider value={{ currentUserData, validateToken, base64ToBlob, openSettings, setOpenSettings, createChat, setCreateChat }}>
 
       {/* Create New Chat */}
       <NewChatPanel isVisible={createChat} onClose={() => setCreateChat(false)} />

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions, useWindowDimensions, TextInput, FlatList, Image, Platform } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { API_URL, useAuth, UserScheme } from '@/app/api/AuthProvider';
+import { API_URL, API_URL_BASE, useAuth, UserScheme } from '@/app/api/AuthProvider';
 import { SimpleCheckbox } from '../simple-checkbox';
 import { SimpleModal } from './simple-modal';
 import * as ImagePicker from 'expo-image-picker';
@@ -191,7 +191,7 @@ const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
         if (groupPhoto.startsWith("data:image")) {
           const blob = base64ToBlob(groupPhoto);
           const file = new File([blob], "group_photo." + blob.type.split("/")[1], { type: blob.type });
-          formData.append("groupPhoto", file);
+          formData.append("groupPhoto", `${API_URL_BASE}/${file}`.replace(/\\/g, "/"));
         } else {
           const imageName = groupPhoto ? groupPhoto.split('/').pop() : 'group_photo.jpg';
           const mimeType = mime.getType(groupPhoto);
