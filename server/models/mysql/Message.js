@@ -1,5 +1,10 @@
 module.exports = (sequelize, DataTypes) => {
   const Message = sequelize.define("Message", {
+    id: {
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
+      primaryKey: true
+    },
     content: DataTypes.TEXT,
     media: DataTypes.STRING,
     type: {

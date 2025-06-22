@@ -1,58 +1,112 @@
-const User = require('../../models/mysql/User.js');
-const Message = require('../../models/mysql/Message.js');
-const Chat = require('../../models/mysql/Chat.js');
-const { Op } = require('../../config/mysql/db.js');
+const { User, Message, Chat } = require('../../models/mysql');
+const { Op } = require('sequelize');
 
 // Create a new chat
 exports.createChat = async (req, res) => {
-  const { userIds, isGroup, name, description } = req.body;
+  let { userIds, isGroup, name, description } = req.body;
   const groupPhoto = req.file?.path;
-  const creator = req.user;
+  const creatorId = req.user?.id ?? req.user;
+
+  console.log('Creating chat with data:', {
+    userIds,
+    isGroup,
+    name,
+    description,
+    groupPhoto,
+    creatorId
+  });
+
+  // Jika userIds dikirim sebagai string JSON (karena FormData), parse dulu
+  if (typeof userIds === 'string') {
+    try {
+      userIds = JSON.parse(userIds);
+    } catch {
+      return res.status(400).json({ message: 'Invalid userIds format' });
+    }
+  }
 
   try {
-    if (!isGroup) {
+    // ---- PRIVATE CHAT ----
+    if (!isGroup || isGroup === 'false' || isGroup === false) {
       if (!userIds || userIds.length !== 1) {
         return res.status(400).json({ message: 'Private chat must have exactly one user ID' });
       }
 
       const targetId = userIds[0];
 
-      // Check if the chat already exists
-      const existingChat = await Chat.findOne({
-        isGroup: false,
-        participants: { $all: [creator, targetId], $size: 2 }
+      // Pastikan kedua user valid dan eksis
+      const users = await User.findAll({
+        where: {
+          id: { [Op.in]: [creatorId, targetId] }
+        }
       });
 
-      if (existingChat) {
-        return res.status(200).json({ message: 'Chat already exists', chatId: existingChat._id });
+      if (users.length < 2) {
+        return res.status(404).json({ message: 'One or more users not found' });
       }
 
-      // If no existing chat, create a new private chat
-      const newChat = new Chat({
-        isGroup: false,
-        participants: [creator, targetId]
+      // Cek apakah chat privat sudah ada
+      const existingChats = await Chat.findAll({
+        where: { isGroup: false },
+        include: [{
+          model: User,
+          as: 'participants',
+          where: { id: { [Op.in]: [creatorId, targetId] } },
+          through: { attributes: [] }
+        }]
       });
 
-      await newChat.save();
-      return res.status(201).json({ message: 'Chat created successfully', chatId: newChat._id });
+      // Hanya lanjut kalau benar-benar cuma 2 user dalam chat tersebut
+      const existingChat = existingChats.find(chat => 
+        chat.participants.length === 2 &&
+        chat.participants.some(u => u.id === creatorId) &&
+        chat.participants.some(u => u.id === targetId)
+      );
+
+      if (existingChat) {
+        return res.status(200).json({ message: 'Chat already exists', chatId: existingChat.id });
+      }
+
+      // Buat chat baru
+      const newChat = await Chat.create({ isGroup: false });
+      await newChat.setParticipants([creatorId, targetId]);
+
+      return res.status(201).json({ message: 'Private chat created', chatId: newChat.id });
     }
 
-    // Not a private chat, so it must be a group chat
-    const uniqueParticipants = [...new Set([...userIds, creator])];
+    // ---- GROUP CHAT ----
+    const participants = [...new Set([...userIds, creatorId])];
 
-    const chat = new Chat({
-      isGroup,
-      name: isGroup ? name : undefined,
-      description: isGroup ? description : undefined,
-      groupPhoto: isGroup && groupPhoto ? groupPhoto : undefined,
-      participants: uniqueParticipants,
-      admins: isGroup ? [creator] : [] // creator is admin for group chats
+    // Validasi user di DB
+    const validUsers = await User.findAll({
+      where: {
+        id: { [Op.in]: participants }
+      }
     });
 
-    await chat.save();
-    res.status(201).json({ _id: chat._id, ...chat.toObject() });
+    if (validUsers.length !== participants.length) {
+      return res.status(404).json({ message: 'Some participants do not exist' });
+    }
+
+    // Buat chat grup
+    const groupChat = await Chat.create({
+      isGroup: true,
+      name,
+      description,
+      groupPhoto
+    });
+
+    await groupChat.setParticipants(participants);
+    await groupChat.setAdmins([creatorId]);
+
+    return res.status(201).json({
+      message: 'Group chat created',
+      chatId: groupChat.id
+    });
+
   } catch (error) {
-    res.status(500).json({ message: error.message || 'Server error' });
+    console.error('Create chat error:', error);
+    return res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 
@@ -65,31 +119,40 @@ exports.getChatDetail = async (req, res) => {
       return res.status(400).json({ message: 'Chat ID is required' });
     }
 
-    const chat = await Chat.findById(chatId)
-      .populate('participants', 'email')
-      .populate('participants', 'username')
-      .populate('lastMessage');
+    const chat = await Chat.findByPk(chatId, {
+      include: [
+        {
+          model: User,
+          as: 'participants',
+          attributes: ['id', 'username', 'email'],
+          through: { attributes: [] }
+        },
+        {
+          model: Message,
+          as: 'lastMessage'
+        }
+      ]
+    });
 
     if (!chat) {
-      return res.status(404).json({ message: 'Chat tidak ditemukan' });
+      return res.status(404).json({ message: 'Chat not found' });
     }
 
-    // Cek apakah user adalah peserta
-    if (!chat.participants.some(u => u._id.toString() === req.user.toString())) {
-      return res.status(403).json({ message: 'Anda tidak diizinkan mengakses chat ini' });
+    // Validate user is part of the chat
+    const isParticipant = chat.participants.some(user => user.id.toString() === req.user.toString());
+    if (!isParticipant) {
+      return res.status(403).json({ message: 'You are not a participant of this chat' });
     }
 
-    res.json(
-      {
-        _id: chat._id,
-        isGroup: chat.isGroup,
-        name: chat.isGroup ? chat.name : null,
-        description: chat.isGroup ? chat.description : null,
-        groupPhoto: chat.isGroup ? chat.groupPhoto : null,
-        participants: chat.participants,
-        lastMessage: chat.lastMessage
-      }
-  );
+    res.json({
+      id: chat.id,
+      isGroup: chat.isGroup,
+      name: chat.isGroup ? chat.name : null,
+      description: chat.isGroup ? chat.description : null,
+      groupPhoto: chat.isGroup ? chat.groupPhoto : null,
+      participants: chat.participants,
+      lastMessage: chat.lastMessage
+    });
   } catch (error) {
     res.status(500).json({ message: error.message || 'Server error' });
   }
@@ -97,35 +160,47 @@ exports.getChatDetail = async (req, res) => {
 
 // Get all chats for a user
 exports.getAllChatsForUser = async (req, res) => {
-  try {
-    const userId = req.user;
-    const { isGroup, sortBy = 'updatedAt', order = 'desc' } = req.query;
+  const userId = req.user;
+  const { isGroup, sortBy = 'updatedAt', order = 'desc' } = req.query;
 
-    const filter = { participants: userId };
-    if (isGroup === 'true') filter.isGroup = true;
-    if (isGroup === 'false') filter.isGroup = false;
+  try {
+    const chatWhere = {};
+    if (isGroup === 'true') chatWhere.isGroup = true;
+    if (isGroup === 'false') chatWhere.isGroup = false;
 
     const sort = {};
     sort[sortBy] = order === 'asc' ? 1 : -1;
 
-    const chats = await Chat.find(filter)
-      .populate('participants', 'username email profilePhoto')
-      .populate('lastMessage')
-      .sort(sort);
+    const chats = await Chat.findAll({
+      where: chatWhere,
+      include: [
+        {
+          model: User,
+          as: 'participants',
+          attributes: ['id', 'username', 'email', 'profilePhoto'],
+          through: { attributes: [] }
+        },
+        {
+          model: Message,
+          as: 'lastMessage'
+        }
+      ],
+      order: [[sortBy, order.toUpperCase()]]
+    });
 
     const formattedChats = chats.map(chat => {
       const otherUser = !chat.isGroup
-        ? chat.participants.find(p => p._id.toString() !== userId.toString())
+        ? chat.participants.find(p => p.id !== userId)
         : null;
 
       return {
-        _id: chat._id,
+        id: chat.id,
         isGroup: chat.isGroup,
         name: chat.isGroup ? chat.name : otherUser?.username,
-        photo: chat.isGroup ? chat.groupPhoto : otherUser?.profilePhoto,
+        groupPhoto: chat.isGroup ? chat.groupPhoto : otherUser?.profilePhoto,
         lastMessage: chat.lastMessage,
         participants: chat.participants.map(p => ({
-          _id: p._id,
+          id: p.id,
           username: p.username,
           email: p.email,
           profilePhoto: p.profilePhoto
@@ -134,11 +209,7 @@ exports.getAllChatsForUser = async (req, res) => {
       };
     });
 
-    res.json(
-      {
-        data: formattedChats
-      }
-    );
+    res.json({ data: formattedChats });
   } catch (error) {
     res.status(500).json({ message: error.message || 'Server error' });
   }
@@ -149,19 +220,29 @@ exports.editGroupChat = async (req, res) => {
   const { chatId } = req.params;
   const { name, description } = req.body;
   const groupPhoto = req.file?.path;
+  const userId = req.user;
 
   try {
-    const chat = await Chat.findById(chatId);
+    const chat = await Chat.findByPk(chatId, {
+      include: [
+        { model: User, as: 'participants', through: { attributes: [] } },
+        { model: User, as: 'admins', through: { attributes: [] } }
+      ]
+    });
+
     if (!chat || !chat.isGroup) {
       return res.status(400).json({ message: 'Chat not found or not a group chat' });
     }
 
-    if (!chat.admins.includes(req.user.toString())) {
-      return res.status(403).json({ message: 'Only admins can edit group details' });
+    const isParticipant = chat.participants.some(u => u.id === userId);
+    const isAdmin = chat.admins.some(u => u.id === userId);
+
+    if (!isParticipant) {
+      return res.status(403).json({ message: 'You are not a participant of this group' });
     }
 
-    if (!chat.participants.includes(req.user.toString())) {
-      return res.status(403).json({ message: 'You are not a participant of this group' });
+    if (!isAdmin) {
+      return res.status(403).json({ message: 'Only admins can edit group details' });
     }
 
     if (name) chat.name = name;
@@ -169,6 +250,7 @@ exports.editGroupChat = async (req, res) => {
     if (groupPhoto) chat.groupPhoto = groupPhoto;
 
     await chat.save();
+
     res.json({ message: 'Group chat details updated successfully', chat });
   } catch (error) {
     res.status(500).json({ message: error.message || 'Server error' });
@@ -178,19 +260,33 @@ exports.editGroupChat = async (req, res) => {
 // Delete chat
 exports.deleteChat = async (req, res) => {
   const { chatId } = req.params;
+  const userId = req.user;
 
   try {
-    const chat = await Chat.findById(chatId);
+    const chat = await Chat.findByPk(chatId, {
+      include: [{
+        association: 'participants', // as: 'participants' di belongsToMany
+        through: { attributes: [] }  // hide pivot
+      }]
+    });
+
     if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
-    // Validasi user adalah peserta
-    if (!chat.participants.includes(req.user.toString())) {
+    // Cek apakah user adalah peserta
+    const isParticipant = chat.participants.some(user => user.id === userId);
+    if (!isParticipant) {
       return res.status(403).json({ message: 'You do not have permission to delete this chat' });
     }
 
-    await Chat.findOneAndDelete({ _id: chatId });
+    // Hapus chat dan semua pesan terkait dalam transaksi
+    await sequelize.transaction(async (t) => {
+      await Message.destroy({ where: { chatId }, transaction: t });
+      await chat.destroy({ transaction: t }); // akan otomatis hapus dari ChatParticipants dan ChatAdmins jika relasi diatur cascade
+    });
+
     res.json({ message: 'Chat deleted successfully' });
   } catch (error) {
+    console.error('Error deleting chat:', error);
     res.status(500).json({ message: error.message || 'Server error' });
   }
 };
@@ -199,33 +295,39 @@ exports.deleteChat = async (req, res) => {
 exports.sendMessage = async (req, res) => {
   const { chatId, content, type } = req.body;
   const media = req.file?.path;
+  const senderId = req.user;
 
   try {
-    // Validate chat exists
-    const chat = await Chat.findById(chatId);
+    // Validasi chat
+    const chat = await Chat.findByPk(chatId, {
+      include: [{
+        model: User,
+        as: 'participants',
+        through: { attributes: [] }
+      }]
+    });
+
     if (!chat) {
       return res.status(404).json({ message: 'Chat not found' });
     }
 
-    // Validate user is part of the chat
-    if (!chat.participants.includes(req.user.toString())) {
+    // Validasi partisipasi
+    const isParticipant = chat.participants.some(p => p.id === senderId);
+    if (!isParticipant) {
       return res.status(403).json({ message: 'You are not a participant of this chat' });
     }
 
-    // Create new message
-    const message = new Message({
+    // Buat pesan
+    const message = await Message.create({
       chatId,
-      sender: req.user,
+      senderId,
       content: type === 'text' ? content : '',
       media: type !== 'text' ? media : '',
       type
     });
 
-    await message.save();
-
-    // Update chat with last message
-    chat.lastMessage = message._id;
-    await chat.save();
+    // Update lastMessage di chat
+    await chat.update({ lastMessageId: message.id });
 
     res.status(201).json(message);
   } catch (error) {
@@ -239,16 +341,16 @@ exports.editMessage = async (req, res) => {
   const { content } = req.body;
 
   try {
-    const message = await Message.findById(messageId);
-    if (!message) return res.status(404).json({ message: 'Chat not found' });
+    const message = await Message.findByPk(messageId);
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' });
+    }
 
-    if (message.sender.toString() !== req.user.toString()) {
+    if (message.senderId !== req.user) {
       return res.status(403).json({ message: 'Cannot edit someone else\'s message' });
     }
 
-    message.content = content;
-    message.updatedAt = new Date();
-    await message.save();
+    await message.update({ content }); // updatedAt otomatis diupdate oleh Sequelize
 
     res.json({ message: 'Chat message updated successfully', message });
   } catch (error) {
@@ -264,32 +366,33 @@ exports.getMessages = async (req, res) => {
 
   try {
     // Validate chat exists and user is part of it
-    const chat = await Chat.findById(chatId);
-    if (!chat) {
-      return res.status(404).json({ message: 'Chat not found' });
-    }
+    const chat = await Chat.findByPk(chatId, {
+      include: [{
+        model: User,
+        as: 'participants',
+        where: { id: req.user }, // check if user is a participant
+        through: { attributes: [] }
+      }]
+    });
 
-    if (!chat.participants.includes(req.user.toString())) {
+    if (!chat) {
       return res.status(403).json({ message: 'You are not a participant of this chat' });
     }
 
-    // Get messages for the chat
-    let query = Message.find({ chatId })
-      .populate('sender', 'email')
-      .populate('sender', 'username')
-      .sort('createdAt');
+    // Fetch messages for the chat
+    const messages = await Message.findAll({
+      where: { chatId },
+      include: [{
+        model: User,
+        as: 'sender',
+        attributes: ['id', 'email', 'username']
+      }],
+      order: [['createdAt', 'ASC']],
+      offset: start,
+      limit: limit > 0 ? limit : undefined
+    });
 
-    if (limit > 0) {
-      query = query.skip(start).limit(limit);
-    }
-
-    const messages = await query;
-
-    res.json(
-      {
-        data: messages
-      }
-    );
+    res.json({ data: messages });
   } catch (error) {
     res.status(500).json({ message: error.message || 'Server error' });
   }
@@ -298,14 +401,19 @@ exports.getMessages = async (req, res) => {
 // Set message as delivered
 exports.setMessageDelivered = async (req, res) => {
   const { messageId } = req.params;
+  const userId = req.user;
 
   try {
-    const message = await Message.findById(messageId);
+    const message = await Message.findByPk(messageId);
     if (!message) return res.status(404).json({ message: 'Message not found' });
-    if (!message.isDelivered.includes(req.user.toString())) {
-      message.isDelivered.push(req.user);
-      await message.save();
+
+    // Tambahkan ke relasi jika belum ada
+    const deliveredUsers = await message.getDeliveredUsers({ where: { id: userId } });
+
+    if (deliveredUsers.length === 0) {
+      await message.addDeliveredUser(userId);
     }
+
     res.json({ message: 'Message marked as delivered' });
   } catch (error) {
     res.status(500).json({ message: error.message || 'Server error' });
@@ -315,16 +423,25 @@ exports.setMessageDelivered = async (req, res) => {
 // Set message as read
 exports.setMessageRead = async (req, res) => {
   const { messageId } = req.params;
+  const userId = req.user;
 
   try {
-    const message = await Message
-      .findById(messageId)
-      .populate('sender', 'email username profilePhoto');
+    const message = await Message.findByPk(messageId, {
+      include: [{
+        model: User,
+        as: 'sender',
+        attributes: ['id', 'email', 'username', 'profilePhoto']
+      }]
+    });
+
     if (!message) return res.status(404).json({ message: 'Message not found' });
-    if (!message.isRead.includes(req.user.toString())) {
-      message.isRead.push(req.user);
-      await message.save();
+
+    const readUsers = await message.getReadUsers({ where: { id: userId } });
+
+    if (readUsers.length === 0) {
+      await message.addReadUser(userId);
     }
+
     res.json({ message: 'Message marked as read', message });
   } catch (error) {
     res.status(500).json({ message: error.message || 'Server error' });
@@ -334,16 +451,17 @@ exports.setMessageRead = async (req, res) => {
 // Delete message
 exports.deleteMessage = async (req, res) => {
   const { messageId } = req.params;
+  const userId = req.user;
 
   try {
-    const message = await Message.findById(messageId);
+    const message = await Message.findByPk(messageId);
     if (!message) return res.status(404).json({ message: 'Message not found' });
 
-    if (message.sender.toString() !== req.user.toString()) {
+    if (message.senderId !== userId) {
       return res.status(403).json({ message: 'Cannot delete someone else\'s message' });
     }
 
-    await message.deleteOne();
+    await message.destroy();
     res.json({ message: 'Message successfully deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message || 'Server error' });

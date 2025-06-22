@@ -1,9 +1,7 @@
-const User = require('../../models/mysql/User.js');
-const Message = require('../../models/mysql/Message.js');
-const Chat = require('../../models/mysql/Chat.js');
-const { Op } = require('../../config/mysql/db.js');
+const { User, Message, Chat } = require('../../models/mysql');
+const { Sequelize, Op } = require('sequelize');
 
-const sendEmail = require('../utils/sendEmail');
+const sendEmail = require('../../utils/sendEmail');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -218,15 +216,19 @@ exports.findUser = async (req, res) => {
   const { keywordInput } = req.params;
 
   try {
-    const keyword = String(keywordInput || '');
-
-    console.log('Searching for users with keyword:', keyword);
+    const lowerKeyword = String(keywordInput || '').toLowerCase();
 
     const users = await User.findAll({
       where: {
         [Op.or]: [
-          { email: { [Op.like]: `%${keyword}%` } },
-          { username: { [Op.like]: `%${keyword}%` } }
+          Sequelize.where(
+            Sequelize.fn('LOWER', Sequelize.col('email')),
+            { [Op.like]: `%${lowerKeyword}%` }
+          ),
+          Sequelize.where(
+            Sequelize.fn('LOWER', Sequelize.col('username')),
+            { [Op.like]: `%${lowerKeyword}%` }
+          )
         ]
       },
       attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] }
