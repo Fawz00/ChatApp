@@ -6,10 +6,25 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true
     },
     type: {
-      type: DataTypes.ENUM('other', 'new_message', 'added_to_group', 'removed_from_group'),
+      type: DataTypes.ENUM('other', 'new_message', 'added_to_chat', 'removed_from_chat', 'mentioned'),
       allowNull: false
     },
-    messageId: DataTypes.STRING, // bisa jadi string karena tidak dijadikan FK
+    messageId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      references: {
+        model: 'Message',
+        key: 'id'
+      }
+    },
+    chatId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      references: {
+        model: 'Chat',
+        key: 'id'
+      }
+    },
     isRead: { type: DataTypes.BOOLEAN, defaultValue: false }
   }, { timestamps: true });
 

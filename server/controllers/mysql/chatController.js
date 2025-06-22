@@ -1,4 +1,5 @@
-const { User, Message, Chat } = require('../../models/mysql');
+const { User, Message, Chat, Notification } = require('../../models/mysql');
+const { sendSocketNotification } = require('../../socket');
 const { Op } = require('sequelize');
 
 // Create a new chat
@@ -7,16 +8,7 @@ exports.createChat = async (req, res) => {
   const groupPhoto = req.file?.path;
   const creatorId = req.user?.id ?? req.user;
 
-  console.log('Creating chat with data:', {
-    userIds,
-    isGroup,
-    name,
-    description,
-    groupPhoto,
-    creatorId
-  });
-
-  // Jika userIds dikirim sebagai string JSON (karena FormData), parse dulu
+  // If userIds is a string, try to parse it as JSON
   if (typeof userIds === 'string') {
     try {
       userIds = JSON.parse(userIds);
@@ -34,7 +26,7 @@ exports.createChat = async (req, res) => {
 
       const targetId = userIds[0];
 
-      // Pastikan kedua user valid dan eksis
+      // Make sure creatorId and targetId are different
       const users = await User.findAll({
         where: {
           id: { [Op.in]: [creatorId, targetId] }
@@ -45,7 +37,7 @@ exports.createChat = async (req, res) => {
         return res.status(404).json({ message: 'One or more users not found' });
       }
 
-      // Cek apakah chat privat sudah ada
+      // Check if chat already exists
       const existingChats = await Chat.findAll({
         where: { isGroup: false },
         include: [{
@@ -56,7 +48,7 @@ exports.createChat = async (req, res) => {
         }]
       });
 
-      // Hanya lanjut kalau benar-benar cuma 2 user dalam chat tersebut
+      // Continue if chat already exists
       const existingChat = existingChats.find(chat => 
         chat.participants.length === 2 &&
         chat.participants.some(u => u.id === creatorId) &&
@@ -67,9 +59,16 @@ exports.createChat = async (req, res) => {
         return res.status(200).json({ message: 'Chat already exists', chatId: existingChat.id });
       }
 
-      // Buat chat baru
+      // Create new private chat
       const newChat = await Chat.create({ isGroup: false });
       await newChat.setParticipants([creatorId, targetId]);
+
+      // Send socket notification to other user
+      const notification = {
+        type: 'added_to_chat',
+        chatId: newChat.id
+      };
+      sendSocketNotification(targetId, notification);
 
       return res.status(201).json({ message: 'Private chat created', chatId: newChat.id });
     }
@@ -77,7 +76,7 @@ exports.createChat = async (req, res) => {
     // ---- GROUP CHAT ----
     const participants = [...new Set([...userIds, creatorId])];
 
-    // Validasi user di DB
+    // Validate participants
     const validUsers = await User.findAll({
       where: {
         id: { [Op.in]: participants }
@@ -88,7 +87,7 @@ exports.createChat = async (req, res) => {
       return res.status(404).json({ message: 'Some participants do not exist' });
     }
 
-    // Buat chat grup
+    // Create group chat
     const groupChat = await Chat.create({
       isGroup: true,
       name,
@@ -98,6 +97,15 @@ exports.createChat = async (req, res) => {
 
     await groupChat.setParticipants(participants);
     await groupChat.setAdmins([creatorId]);
+
+    // Create notification for each participant
+    const notification = {
+      type: 'added_to_chat',
+      chatId: groupChat.id
+    };
+    for (const _userId of userIds) {
+      sendSocketNotification(_userId, notification);
+    }
 
     return res.status(201).json({
       message: 'Group chat created',
@@ -288,17 +296,31 @@ exports.deleteChat = async (req, res) => {
 
     if (!chat) return res.status(404).json({ message: 'Chat not found' });
 
-    // Cek apakah user adalah peserta
-    const isParticipant = chat.participants.some(user => user.id === userId);
-    if (!isParticipant) {
+    // Check if user is a admin
+    const isAdmin = chat.admins.some(user => user.id === userId);
+    if (!isAdmin) {
       return res.status(403).json({ message: 'You do not have permission to delete this chat' });
     }
 
-    // Hapus chat dan semua pesan terkait dalam transaksi
+    // Get all participants and admins
+    const participants = chat.participants.map(p => p.id);
+    const admins = chat.admins.map(a => a.id);
+    const allUsers = [...new Set([...participants, ...admins])];
+
+    // Remove chat and its messages
     await sequelize.transaction(async (t) => {
       await Message.destroy({ where: { chatId }, transaction: t });
-      await chat.destroy({ transaction: t }); // akan otomatis hapus dari ChatParticipants dan ChatAdmins jika relasi diatur cascade
+      await chat.destroy({ transaction: t }); // this will also delete the chat from participants and admins
     });
+
+    // Create notification for each participant
+    const notification = {
+      type: 'removed_from_chat',
+      chatId
+    };
+    for (const _userId of allUsers) {
+      if(!userId) sendSocketNotification(_userId, notification);
+    }
 
     res.json({ message: 'Chat deleted successfully' });
   } catch (error) {
@@ -314,7 +336,7 @@ exports.sendMessage = async (req, res) => {
   const senderId = req.user;
 
   try {
-    // Validasi chat
+    // Validate input
     const chat = await Chat.findByPk(chatId, {
       include: [{
         model: User,
@@ -327,13 +349,13 @@ exports.sendMessage = async (req, res) => {
       return res.status(404).json({ message: 'Chat not found' });
     }
 
-    // Validasi partisipasi
+    // Validate participant
     const isParticipant = chat.participants.some(p => p.id === senderId);
     if (!isParticipant) {
       return res.status(403).json({ message: 'You are not a participant of this chat' });
     }
 
-    // Buat pesan
+    // Create message
     const message = await Message.create({
       chatId,
       senderId,
@@ -342,8 +364,22 @@ exports.sendMessage = async (req, res) => {
       type
     });
 
-    // Update lastMessage di chat
+    // Update lastMessageId in chat
     await chat.update({ lastMessageId: message.id });
+
+    // Create notification for each participant
+    const chatParticipants = await chat.getParticipants({ attributes: ['id'] });
+    const ChatAdmins = await chat.getAdmins({ attributes: ['id'] });
+    const userIds = chatParticipants.map(p => p.id).concat(ChatAdmins.map(a => a.id));
+
+    const notification = {
+      type: 'new_message',
+      chatId,
+      messageId: message.id,
+    };
+    for (const _userId of userIds) {
+      sendSocketNotification(_userId, notification);
+    }
 
     res.status(201).json(message);
   } catch (error) {

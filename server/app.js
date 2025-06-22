@@ -1,6 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const http = require('http');
 
 dotenv.config();
 const app = express();
@@ -8,8 +9,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use('/uploads', express.static('uploads'));
+// Socket.IO setup
+const server = http.createServer(app);
+const { initSocket } = require('./socket');
+initSocket(server);
 
+// Uploads directory setup
+app.use('/uploads', express.static('uploads'));
 const fs = require('fs');
 if (!fs.existsSync('uploads')) {
   fs.mkdirSync('uploads');
