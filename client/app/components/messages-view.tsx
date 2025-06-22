@@ -13,7 +13,10 @@ import WebDateTimePicker from "./dateTimePicker";
 import React from "react";
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import UniversalDateTimePicker from '../components/WebCompatibleDateTimePicker';
+import { Alert } from 'react-native';
+import { DeleteChatModal } from "../components/modals/delete-modal";
+
 
 interface MessagesView {
   loadedChat: string;
@@ -43,6 +46,7 @@ export default function MessagesView({
   const [chatDetails, setChatDetails] = useState<ChatScheme | undefined>(undefined);
   const [messages, setMessages] = useState<MessageScheme[]>([]);
   const [message, setMessage] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   
 
   // On loaded chat change, fetch the messages for the selected 
@@ -179,6 +183,58 @@ export default function MessagesView({
       console.error('An error occurred:', error);
     }
   };
+
+  // handle delete message
+ const handleDeleteChatRoom = () => {
+  Alert.alert(
+    "Delete Chat Room",
+    "Are you sure you want to delete this chat room? This action cannot be undone.",
+    [
+      {
+        text: "Cancel",
+        style: "cancel"
+      },
+      {
+        text: "Delete",
+        onPress: async () => {
+          try {
+            const response = await fetch(`${API_URL}/chat/${loadedChat}`, {
+              method: 'DELETE',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+              },
+            });
+
+            if (response.ok) {
+              // Berhasil hapus chat room
+              setLoadedChat(""); // Kembali ke daftar chat
+            } else if (response.status === 401) {
+              logout(); // Token tidak valid
+            } else {
+              const responseJson = await response.json();
+              setModal({
+                ...getModal,
+                visible: true,
+                isLoading: false,
+                message: responseJson.message || 'An error occurred while deleting the chat room.',
+              });
+            }
+          } catch (error) {
+            console.error('Error deleting chat room:', error);
+            setModal({
+              ...getModal,
+              visible: true,
+              isLoading: false,
+              message: 'Failed to delete chat room.',
+            });
+          }
+        },
+      },
+    ],
+    { cancelable: false }
+  );
+};
+
 
   // Handle scheduling a message
   const handleScheduleMessage = (time: Date) => {
@@ -340,7 +396,11 @@ const sendScheduledMessage = async (scheduledText: string) => {
         </View>
         <View style={styles.chatHeaderActions}>
           <Ionicons name="notifications-outline" size={20} />
-          <Ionicons name="ellipsis-horizontal" size={20} />
+          <TouchableOpacity
+            onPress={() => setShowDeleteModal(true)}
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -351,6 +411,7 @@ const sendScheduledMessage = async (scheduledText: string) => {
         }}
       >
         {messages.map(msg => {
+          console.log("Message:", msg);
           const isMyMessage = msg.sender.id === currentUserData?.id;
           return (
             <View
@@ -394,30 +455,25 @@ const sendScheduledMessage = async (scheduledText: string) => {
 
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
        {true && (
-          <DateTimePicker
+          <UniversalDateTimePicker
             value={scheduleTime || new Date()}
             mode="datetime"
-            display="default"
             onChange={(event, selectedDate) => {
               setShowDatePicker(false);
               if (selectedDate) {
                 setScheduleTime(selectedDate);
-
-                // Format waktu untuk ditampilkan
                 const timeString = selectedDate.toLocaleTimeString([], {
                   hour: "numeric",
                   minute: "2-digit"
                 });
                 const dateString = selectedDate.toLocaleDateString();
-
                 setModal({
                   ...getModal,
                   visible: true,
                   isLoading: false,
                   message: `Message will be sent at ${timeString} on ${dateString}`,
                 });
-
-                handleScheduleMessage(selectedDate); // Jadwalkan pengiriman
+                handleScheduleMessage(selectedDate);
               }
             }}
           />
@@ -462,6 +518,11 @@ const sendScheduledMessage = async (scheduledText: string) => {
           <Text style={styles.sendButtonText}>Send</Text>
         </TouchableOpacity>
       </View>
+      <DeleteChatModal
+        visible={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteChatRoom}
+      />
 
     </View>
   );
