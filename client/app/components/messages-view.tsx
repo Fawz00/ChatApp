@@ -22,6 +22,8 @@ import { DeleteChatModal } from "../components/modals/delete-modal";
 import { useDrawerContext } from "./drawer/app-drawer-navigation";
 import io from 'socket.io-client';
 import mime from "mime";
+import { ImagePreviewModal } from '../components/modals/ImagePreviewModal';
+import { SimpleModal } from "./modals/simple-modal";
 
 
 interface MessagesView {
@@ -54,6 +56,8 @@ export default function MessagesView({
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduleTime, setScheduleTime] = useState<Date | null>(null);
@@ -170,106 +174,57 @@ export default function MessagesView({
 
   // Handle sending a message
   const handleSend = async () => {
-  if (!message.trim() && !selectedMedia) return;
+    if (!message.trim() && !selectedMedia) return;
 
-  const formData = new FormData();
-  formData.append("chatId", loadedChat);
-  formData.append("content", message.trim());
+    const formData = new FormData();
+    formData.append("chatId", loadedChat);
+    formData.append("content", message.trim());
 
-  if (selectedMedia) {
-    const uriParts = selectedMedia.split('.');
-    const fileType = uriParts[uriParts.length - 1];
+    if (selectedMedia) {
+      const uriParts = selectedMedia.split('.');
+      const fileType = uriParts[uriParts.length - 1];
 
-    formData.append("type", fileType === 'jpg' || fileType === 'png' ? 'image' : 'file');
+      formData.append("type", fileType === 'jpg' || fileType === 'png' ? 'image' : 'file');
 
-    // Untuk web dan mobile berbeda
-    if (Platform.OS === 'web') {
-      const response = await fetch(selectedMedia);
-      const blob = await response.blob();
-      formData.append('media', blob, `media.${fileType}`);
-    } else {
-      formData.append('media', {
-        uri: selectedMedia,
-        name: `media.${fileType}`,
-        type: `image/${fileType}`,
-      } as any);
-    }
-  } else {
-    formData.append("type", "text");
-  }
-
-  try {
-    const response = await fetch(`${API_URL}/chat/send`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    const responseJson = await response.json();
-
-    if (response.ok) {
-      setMessage('');
-      setSelectedMedia(null);
-      handleLoadChatMessages(); // Muat ulang pesan
-    } else {
-      setModal({ ...getModal, visible: true, isLoading: false, message: responseJson.message || 'Failed to send media.' });
-    }
-  } catch (error) {
-    console.error("Send error:", error);
-    setModal({ ...getModal, visible: true, isLoading: false, message: 'Failed to send media.' });
-  }
-};
-
-  //handle add member to group
-  const handleAddMembers = (newMembers: UserScheme[]) => {
-    setChatDetails(prev => {
-      if (!prev || !prev.participants) {
-        return {
-          id: loadedChat,
-          name: chatDetails?.name || '',
-          isGroup: true,
-          participants: newMembers,
-          admins: [],
-          lastMessage: undefined,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
+      // Untuk web dan mobile berbeda
+      if (Platform.OS === 'web') {
+        const response = await fetch(selectedMedia);
+        const blob = await response.blob();
+        formData.append('media', blob, `media.${fileType}`);
+      } else {
+        formData.append('media', {
+          uri: selectedMedia,
+          name: `media.${fileType}`,
+          type: `image/${fileType}`,
+        } as any);
       }
+    } else {
+      formData.append("type", "text");
+    }
 
-      return {
-        ...prev,
-        participants: [...prev.participants, ...newMembers],
-        updatedAt: new Date().toISOString(),
-      };
-    });
+    try {
+      const response = await fetch(`${API_URL}/chat/send`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
 
-    setShowGroupInfo(false);
+      const responseJson = await response.json();
+
+      if (response.ok) {
+        setMessage('');
+        setSelectedMedia(null);
+        handleLoadChatMessages(); // Muat ulang pesan
+      } else {
+        setModal({ ...getModal, visible: true, isLoading: false, message: responseJson.message || 'Failed to send media.' });
+      }
+    } catch (error) {
+      console.error("Send error:", error);
+      setModal({ ...getModal, visible: true, isLoading: false, message: 'Failed to send media.' });
+    }
   };
-
-  // Handle leave group
-      const handleLeaveGroup = async () => {
-      try {
-        const response = await fetch(`${API_URL}/chat/${loadedChat}`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        const responseJson = await response.json();
-
-        if (response.ok) {
-          setLoadedChat(""); // Tutup chat room
-        } else {
-          setModal({ ...getModal, visible: true, message: responseJson.message || 'Failed to leave group.' });
-        }
-      } catch (error) {
-        console.error('Error leaving group:', error);
-        setModal({ ...getModal, visible: true, message: 'An error occurred while leaving the group.' });
-      }
-    };
 
   // handle delete message
   const handleDeleteChatRoom = async () => {
@@ -400,6 +355,73 @@ export default function MessagesView({
       console.error("File pick error:", error);
     }
   };
+
+  //handle promote admin & remove member
+  const handlePromoteToAdmin = async (user: UserScheme) => {
+    try {
+      const response = await fetch(`${API_URL}/chat/${loadedChat}/promote-admin`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (response.ok) {
+        console.log('User promoted to admin');
+      } else {
+        alert('Failed to promote user to admin');
+      }
+    } catch (error) {
+      console.error('Error promoting user:', error);
+      alert('An error occurred while promoting user');
+    }
+  };
+
+const handleDemoteFromAdmin = async (user: UserScheme) => {
+  try {
+    const response = await fetch(`${API_URL}/chat/${loadedChat}/demote-admin`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId: user.id }),
+    });
+
+    if (response.ok) {
+      console.log('User demoted from admin');
+    } else {
+      alert('Failed to demote user');
+    }
+  } catch (error) {
+    console.error('Demote error:', error);
+    alert('An error occurred');
+  }
+};
+
+const handleRemoveMember = async (user: UserScheme) => {
+  try {
+    const response = await fetch(`${API_URL}/chat/${loadedChat}/remove-member`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId: user.id }),
+    });
+
+    if (response.ok) {
+      console.log('User removed');
+    } else {
+      alert('Failed to remove member');
+    }
+  } catch (error) {
+    console.error('Remove error:', error);
+    alert('An error occurred');
+  }
+};
 
   // handleSendMedia
   const handleSendMedia = async (uri: string, type: string) => {
@@ -546,9 +568,16 @@ export default function MessagesView({
               <Text style={styles.messageText}>{msg.content}</Text>
             )}
 
+            
             {msg.type === 'image' && (
+            <TouchableOpacity
+              onPress={() => {
+                setSelectedImage(msg.content);
+                setShowImagePreview(true);
+              }}
+            >
               <Image
-                source={{ uri: `${API_URL_BASE}/${msg.media}`.replace(/\\/g, "/") }}
+                source={{ uri: `${API_URL_BASE}/${msg.media}`.replace(/\\/g, "/")  }}
                 style={{
                   width: 200,
                   height: 200,
@@ -557,7 +586,8 @@ export default function MessagesView({
                 }}
                 resizeMode="cover"
               />
-            )}
+            </TouchableOpacity>
+          )}
 
             {msg.type === 'file' && (
               <View style={{
@@ -688,16 +718,27 @@ export default function MessagesView({
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteChatRoom}
       />
+      
+      <ImagePreviewModal
+        visible={showImagePreview}
+        imageUrl={selectedImage}
+        onClose={() => setShowImagePreview(false)}
+      />             
+
       {chatDetails && (
         <GroupInfoModal
-          visible={showGroupInfo}
-          currentUser={currentUserData}
+          getModal={getModal}
+          setModal={setModal}
+          visibility={showGroupInfo}
           groupData={chatDetails}
-          onLeaveGroup={handleLeaveGroup}
-          onAddMembers={handleAddMembers}
+          currentUser={currentUserData}
+          onPromoteToAdmin={handlePromoteToAdmin}
+          onDemoteFromAdmin={handleDemoteFromAdmin}
+          onRemoveMember={handleRemoveMember}
           onClose={() => setShowGroupInfo(false)}
         />
       )}
+        
     </View>
   );
 };
@@ -823,6 +864,27 @@ scheduledText: {
   mediaButton: {
     marginHorizontal: 4,
   },
+addButtonText: {
+  marginLeft: 8,
+  color: '#fff',
+  fontWeight: 'bold',
+  fontSize: 16,
+},
+adminBadge: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#d1fae5',
+  borderRadius: 6,
+  paddingHorizontal: 6,
+  paddingVertical: 2,
+  marginLeft: 8,
+},
+adminLabel: {
+  fontSize: 12,
+  color: '#065f46',
+  marginLeft: 4,
+  fontWeight: '600',
+},
 });
 function setSelectedMedia(arg0: null) {
   throw new Error("Function not implemented.");

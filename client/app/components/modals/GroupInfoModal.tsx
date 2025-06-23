@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   View,
@@ -10,73 +10,353 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AddMemberModal } from './AddMemberModal';
-import { API_URL_BASE, ChatScheme, UserScheme } from '@/app/api/AuthProvider';
+import { API_URL, API_URL_BASE, ChatScheme, useAuth, UserScheme } from '@/app/api/AuthProvider';
+import mime from 'mime';
+import { useDrawerContext } from '../drawer/app-drawer-navigation';
 
 interface GroupInfoModalProps {
-  visible: boolean;
+  getModal: {
+    message: string;
+    isLoading: boolean;
+    visible: boolean;
+  };
+  setModal: (modal: {
+    message: string;
+    isLoading: boolean;
+    visible: boolean;
+  }) => void;
+  visibility: boolean;
   groupData: ChatScheme;
   currentUser: UserScheme | undefined;
-  onLeaveGroup: () => void;
-  onAddMembers: (newMembers: UserScheme[]) => void; // Callback saat anggota ditambahkan
+  onPromoteToAdmin: (user: UserScheme) => void;
+  onDemoteFromAdmin: (user: UserScheme) => void;
+  onRemoveMember: (user: UserScheme) => void;
   onClose: () => void;
 }
 
 export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
-  visible,
+  getModal,
+  setModal,
+  visibility,
   groupData,
   currentUser,
-  onLeaveGroup,
-  onAddMembers,
+  onPromoteToAdmin,
+  onDemoteFromAdmin,
+  onRemoveMember,
   onClose,
 }) => {
+  const { token, logout } = useAuth();
+  const { setRefreshMessages, refreshMessages, setRefreshSidebar, refreshSidebar, base64ToBlob } = useDrawerContext();
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  // const [localGroupData, setLocalGroupData] = useState<ChatScheme>(groupData);
 
-  React.useEffect(() => {
-    console.log(groupData.groupPhoto);
-  }, []);
+  const isCurrentUserAdmin = groupData.admins.some(a => a.id === currentUser?.id);
 
-  const renderParticipant = ({ item }: { item: UserScheme }) => (
-    <View style={styles.participantItem}>
-      { item?.profilePhoto ? (
-        <Image source={{ uri: `${API_URL_BASE}/${item.profilePhoto}`.replace(/\\/g, "/") }}
-          style={styles.avatarPlaceholder}
-        />
-      ) : (
-        <View style={styles.avatarPlaceholder}>
-          <Text style={styles.teamText}>{item?.username?.charAt(0).toUpperCase() || ""}</Text>
+  const handlePromoteAdmin = async (user: UserScheme) => {
+    try {
+      setModal({ ...getModal, isLoading: true, visible: true });
+
+      const formData = new FormData();
+      formData.append('addAdmins', JSON.stringify([user.id]));
+
+      const response = await fetch(`${API_URL}/chat/${groupData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const responseJson = await response.json();
+      if (response.ok) {
+        setRefreshMessages(!refreshMessages);
+        setRefreshSidebar(!refreshSidebar);
+        setModal({
+          ...getModal,
+          isLoading: false,
+          visible: false,
+        })
+      } else if (response.status === 401) {
+        logout();
+      } else {
+        setModal({
+          ...getModal,
+          visible: true,
+          isLoading: false,
+          message: responseJson.message || 'Promote admin failed',
+        });
+      }
+    } catch (error) {
+      console.error("Send media error:", error);
+      setModal({
+        ...getModal,
+        visible: true,
+        isLoading: false,
+        message: `Failed to send media.\n${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    }
+  };
+
+  const handleDemoteAdmin = async (user: UserScheme) => {
+    try {
+      setModal({ ...getModal, isLoading: true, visible: true });
+
+      const formData = new FormData();
+      formData.append('removeAdmins', JSON.stringify([user.id]));
+
+      const response = await fetch(`${API_URL}/chat/${groupData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const responseJson = await response.json();
+      if (response.ok) {
+        setRefreshMessages(!refreshMessages);
+        setRefreshSidebar(!refreshSidebar);
+        setModal({
+          ...getModal,
+          isLoading: false,
+          visible: false,
+        })
+      } else if (response.status === 401) {
+        logout();
+      } else {
+        setModal({
+          ...getModal,
+          visible: true,
+          isLoading: false,
+          message: responseJson.message || 'Demote admin failed',
+        });
+      }
+    } catch (error) {
+      console.error("Send media error:", error);
+      setModal({
+        ...getModal,
+        visible: true,
+        isLoading: false,
+        message: `Failed to send media.\n${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    }
+  };
+
+  const handleAddParticipant = async (users: UserScheme[]) => {
+    try {
+      setModal({ ...getModal, isLoading: true, visible: true });
+
+      const formData = new FormData();
+      formData.append('addParticipants', JSON.stringify(users.map(u => u.id)));
+
+      const response = await fetch(`${API_URL}/chat/${groupData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const responseJson = await response.json();
+      if (response.ok) {
+        setRefreshMessages(!refreshMessages);
+        setRefreshSidebar(!refreshSidebar);
+        setModal({
+          ...getModal,
+          isLoading: false,
+          visible: false,
+        })
+      } else if (response.status === 401) {
+        logout();
+      } else {
+        setModal({
+          ...getModal,
+          visible: true,
+          isLoading: false,
+          message: responseJson.message || 'Remove participant failed',
+        });
+      }
+    } catch (error) {
+      console.error("Send media error:", error);
+      setModal({
+        ...getModal,
+        visible: true,
+        isLoading: false,
+        message: `Failed to send media.\n${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    }
+  };
+
+  const handleRemoveParticipant = async (user: UserScheme) => {
+    try {
+      setModal({ ...getModal, isLoading: true, visible: true });
+
+      const formData = new FormData();
+      formData.append('removeParticipants', JSON.stringify([user.id]));
+
+      const response = await fetch(`${API_URL}/chat/${groupData.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const responseJson = await response.json();
+      if (response.ok) {
+        setRefreshMessages(!refreshMessages);
+        setRefreshSidebar(!refreshSidebar);
+        setModal({
+          ...getModal,
+          isLoading: false,
+          visible: false,
+        })
+      } else if (response.status === 401) {
+        logout();
+      } else {
+        setModal({
+          ...getModal,
+          visible: true,
+          isLoading: false,
+          message: responseJson.message || 'Remove participant failed',
+        });
+      }
+    } catch (error) {
+      console.error("Send media error:", error);
+      setModal({
+        ...getModal,
+        visible: true,
+        isLoading: false,
+        message: `Failed to send media.\n${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    try {
+      setModal({ ...getModal, isLoading: true, visible: true });
+
+      const response = await fetch(`${API_URL}/chat/leave/${groupData.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const responseJson = await response.json();
+      if (response.ok) {
+        setRefreshMessages(!refreshMessages);
+        setRefreshSidebar(!refreshSidebar);
+        setModal({
+          ...getModal,
+          isLoading: false,
+          visible: false,
+        })
+        onClose();
+      } else if (response.status === 401) {
+        logout();
+      } else {
+        setModal({
+          ...getModal,
+          visible: true,
+          isLoading: false,
+          message: responseJson.message || 'Remove participant failed',
+        });
+      }
+    } catch (error) {
+      console.error("Send media error:", error);
+      setModal({
+        ...getModal,
+        visible: true,
+        isLoading: false,
+        message: `Failed to send media.\n${error instanceof Error ? error.message : 'Unknown error'}`,
+      });
+    }
+  }
+
+  const renderParticipant = ({ item }: { item: UserScheme }) => {
+    const isItemAdmin = groupData.admins.some(a => a.id === item.id);
+    const isCurrentUser = item.id === currentUser?.id;
+
+    return (
+      <View style={styles.participantItem}>
+        {/* Avatar */}
+        {item.profilePhoto ? (
+          <Image
+            source={{ uri: `${API_URL_BASE}/${item.profilePhoto}`.replace(/\\/g, "/") }}
+            style={styles.avatar}
+          />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.teamText}>{item.username?.charAt(0).toUpperCase() || ''}</Text>
+          </View>
+        )}
+
+        {/* Nama Pengguna */}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Text style={styles.participantName}>
+             {item.username || 'Unknown User'}
+          </Text>
+          {isItemAdmin && (
+            <View style={styles.adminBadge}>
+              <Ionicons name="shield-checkmark" size={12} color="#10b981" />
+              <Text style={styles.adminLabel}>Admin</Text>
+            </View>
+          )}
         </View>
-      )}
-      <Text style={styles.participantName}>{item.username || 'Unknown User'}</Text>
-    </View>
-  );
+
+        {/* Aksi Admin */}
+        {isCurrentUserAdmin && !isCurrentUser && (
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              onPress={() => {
+                isItemAdmin ? handleDemoteAdmin(item) : handlePromoteAdmin(item);
+              }}
+              style={styles.promoteButton}
+            >
+              <Ionicons
+                name={isItemAdmin ? 'remove-circle-outline' : 'star-outline'}
+                size={20}
+                color={isItemAdmin ? '#f59e0b' : '#10b981'}
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => handleRemoveParticipant(item)}
+              style={styles.removeButton}
+            >
+              <Ionicons name="person-remove-outline" size={20} color="#ef4444" />
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
+    <Modal animationType="fade" transparent={true} visible={visibility} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-
           {/* Header Modal */}
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#000" /> 
+              <Ionicons name="close" size={24} color="#000" />
             </TouchableOpacity>
             <Text style={styles.title}>Group Info</Text>
-            <View style={{ width: 24 }} /> {/* Spacer */}
+            <View style={{ width: 24 }} />
           </View>
 
-          {/* Foto & Nama Grup */}
+          {/* Foto Grup */}
           <View style={styles.groupHeader}>
             {groupData.groupPhoto ? (
-              <Image source={{ uri: `${API_URL_BASE}/${groupData.groupPhoto}`.replace(/\\/g, "/") }} style={styles.groupAvatar} />
+              <Image
+                source={{ uri: `${API_URL_BASE}/${groupData.groupPhoto}`.replace(/\\/g, "/") }}
+                style={styles.groupAvatar}
+              />
             ) : (
               <View style={styles.groupAvatarPlaceholder}>
                 <Text style={styles.groupInitial}>
-                  {(groupData.name?.charAt(0)?.toUpperCase()) || ""}
+                  {groupData.name?.charAt(0)?.toUpperCase() || ""}
                 </Text>
               </View>
             )}
@@ -91,8 +371,8 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
             contentContainerStyle={styles.participantsList}
           />
 
-          {/* Tombol Add Member (hanya muncul jika admin) */}
-          {(groupData?.admins.some(a => a.id === currentUser?.id) || false) && (
+          {/* Tombol Add Member (jika admin) */}
+          {isCurrentUserAdmin && (
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => setShowAddMemberModal(true)}
@@ -103,7 +383,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
           )}
 
           {/* Tombol Leave Group */}
-          <TouchableOpacity style={styles.leaveButton} onPress={onLeaveGroup}>
+          <TouchableOpacity style={styles.leaveButton} onPress={handleLeaveGroup}>
             <Text style={styles.leaveButtonText}>Leave Group</Text>
           </TouchableOpacity>
         </View>
@@ -114,7 +394,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
         visible={showAddMemberModal}
         onClose={() => setShowAddMemberModal(false)}
         onAddMembers={(newMembers) => {
-          onAddMembers(newMembers);
+          handleAddParticipant(newMembers);
           setShowAddMemberModal(false);
         }}
       />
@@ -177,7 +457,7 @@ const styles = StyleSheet.create({
   groupInitial: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#fff',
+    color: '#333',
   },
   groupName: {
     fontSize: 20,
@@ -195,12 +475,18 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: 12,
+    backgroundColor: '#ccc',
+  },
   avatarPlaceholder: {
     width: 32,
     height: 32,
     borderRadius: 16,
     backgroundColor: '#d1d5db',
-    marginBottom: 8,
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
@@ -208,10 +494,26 @@ const styles = StyleSheet.create({
   teamText: {
     color: '#ffffff',
     fontWeight: 'bold',
+    fontSize: 16,
   },
   participantName: {
     fontSize: 16,
     color: '#333',
+  },
+  actionButtons: {
+    marginLeft: 'auto',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  promoteButton: {
+    padding: 4,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 6,
+  },
+  removeButton: {
+    padding: 4,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 6,
   },
   leaveButton: {
     marginTop: 20,
@@ -244,5 +546,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  adminBadge: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginLeft: 8,
+  paddingHorizontal: 6,
+  paddingVertical: 2,
+  backgroundColor: '#d1fae5',
+  borderRadius: 12,
+},
+adminLabel: {
+  marginLeft: 4,
+  fontSize: 12,
+  color: '#065f46',
+  fontWeight: '600',
+},
 });
-
