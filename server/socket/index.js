@@ -8,7 +8,8 @@ const initSocket = (server) => {
   io = socketIo(server, {
     cors: {
       origin: '*',
-      methods: ['GET', 'POST']
+      methods: ['GET', 'POST'],
+      credentials: true,
     }
   });
 

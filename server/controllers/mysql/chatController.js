@@ -283,9 +283,21 @@ const chatIds = userChats.map(c => c.id);
 // Edit chat details
 exports.editGroupChat = async (req, res) => {
   const { chatId } = req.params;
-  const { name, description } = req.body;
+  let {
+    name,
+    description,
+    addParticipants,
+    removeParticipants,
+    addAdmins,
+    removeAdmins
+  } = req.body;
   const groupPhoto = req.file?.path;
   const userId = req.user;
+  
+  if (typeof addAdmins === 'string') addAdmins = JSON.parse(addAdmins);
+  if (typeof removeAdmins === 'string') removeAdmins = JSON.parse(removeAdmins);
+  if (typeof addParticipants === 'string') addParticipants = JSON.parse(addParticipants);
+  if (typeof removeParticipants === 'string') removeParticipants = JSON.parse(removeParticipants);
 
   try {
     const chat = await Chat.findByPk(chatId, {
@@ -310,13 +322,49 @@ exports.editGroupChat = async (req, res) => {
       return res.status(403).json({ message: 'Only admins can edit group details' });
     }
 
+    // Update variables
+
     if (name) chat.name = name;
     if (description) chat.description = description;
     if (groupPhoto) chat.groupPhoto = groupPhoto;
 
+    // Add participants
+    if (Array.isArray(addParticipants) && addParticipants.length > 0) {
+      await chat.addParticipants(addParticipants);
+    }
+
+    // Remove participants or admins
+    if (Array.isArray(removeParticipants) && removeParticipants.length > 0) {
+      await chat.removeParticipants(removeParticipants);
+      await chat.removeAdmins(removeParticipants);
+    }
+
+    // Add admins
+    if (Array.isArray(addAdmins) && addAdmins.length > 0) {
+      await chat.addAdmins(addAdmins);
+    }
+
+    // Remove admins
+    if (Array.isArray(removeAdmins) && removeAdmins.length > 0) {
+      await chat.removeAdmins(removeAdmins);
+
+      // Make sure at least one admin remains
+      const adminsLeft = await chat.getAdmins();
+      if (adminsLeft.length === 0) {
+        return res.status(400).json({ message: 'Cannot remove all admins — at least one admin must remain.' });
+      }
+    }
+
     await chat.save();
 
-    res.json({ message: 'Group chat details updated successfully', chat });
+    const updatedChat = await Chat.findByPk(chatId, {
+      include: [
+        { model: User, as: 'participants', attributes: ['id', 'username', 'email', 'profilePhoto'], through: { attributes: [] } },
+        { model: User, as: 'admins', attributes: ['id'], through: { attributes: [] } }
+      ]
+    });
+
+    res.json({ message: 'Group chat details updated successfully', updatedChat });
   } catch (error) {
     res.status(500).json({ message: error.message || 'Server error' });
   }
