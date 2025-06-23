@@ -1,4 +1,5 @@
 const { User, Message, Chat, Notification } = require('../../models/mysql');
+const sequelize = require('../../config/mysql/db');
 const { sendSocketNotification } = require('../../socket');
 const { Op } = require('sequelize');
 
@@ -132,12 +133,23 @@ exports.getChatDetail = async (req, res) => {
         {
           model: User,
           as: 'participants',
-          attributes: ['id', 'username', 'email'],
+          attributes: ['id', 'username', 'email', 'profilePhoto'], // Tambahkan profilePhoto
+          through: { attributes: [] }
+        },
+        {
+          model: User,
+          as: 'admins',
+          attributes: ['id', 'username', 'email', 'profilePhoto'], // Ambil juga profilePhoto
           through: { attributes: [] }
         },
         {
           model: Message,
-          as: 'lastMessage'
+          as: 'lastMessage',
+          include: [{
+            model: User,
+            as: 'sender',
+            attributes: ['id', 'username', 'profilePhoto']
+          }]
         }
       ]
     });
@@ -146,22 +158,51 @@ exports.getChatDetail = async (req, res) => {
       return res.status(404).json({ message: 'Chat not found' });
     }
 
-    // Validate user is part of the chat
-    const isParticipant = chat.participants.some(user => user.id.toString() === req.user.toString());
+    // Validasi apakah user adalah partisipan dari chat
+    const isParticipant = chat.participants.some(user =>
+      user.id.toString() === req.user.toString()
+    );
+
     if (!isParticipant) {
       return res.status(403).json({ message: 'You are not a participant of this chat' });
     }
 
+    // Format respons untuk frontend
     res.json({
       id: chat.id,
       isGroup: chat.isGroup,
-      name: chat.isGroup ? chat.name : null,
+      name: chat.isGroup ? chat.name : chat.participants.find(p => p.id !== req.user)?.username || 'Unknown User',
       description: chat.isGroup ? chat.description : null,
       groupPhoto: chat.isGroup ? chat.groupPhoto : null,
-      participants: chat.participants,
-      lastMessage: chat.lastMessage
+      participants: chat.participants.map(participant => ({
+        id: participant.id,
+        username: participant.username,
+        email: participant.email,
+        profilePhoto: participant.profilePhoto
+      })),
+      admins: chat.admins.map(admin => ({
+        id: admin.id,
+        username: admin.username,
+        email: admin.email,
+        profilePhoto: admin.profilePhoto
+      })),
+      lastMessage: chat.lastMessage ? {
+        id: chat.lastMessage.id,
+        content: chat.lastMessage.content,
+        type: chat.lastMessage.type,
+        senderId: chat.lastMessage.senderId,
+        sender: chat.lastMessage.sender ? {
+          id: chat.lastMessage.sender.id,
+          username: chat.lastMessage.sender.username,
+          profilePhoto: chat.lastMessage.sender.profilePhoto
+        } : null,
+        createdAt: chat.lastMessage.createdAt
+      } : null,
+      updatedAt: chat.updatedAt
     });
+
   } catch (error) {
+    console.error('Error fetching chat details:', error);
     res.status(500).json({ message: error.message || 'Server error' });
   }
 };
@@ -281,6 +322,72 @@ exports.editGroupChat = async (req, res) => {
   }
 };
 
+// Leave group chat
+exports.leaveGroupChat = async (req, res) => {
+  const userId = typeof req.user === 'object' ? req.user.id : req.user;
+  const { chatId } = req.params;
+
+  try {
+    // Fetch chat with participants and admins
+    const chat = await Chat.findByPk(chatId, {
+      include: [
+        { association: 'participants', through: { attributes: [] } },
+        { association: 'admins', through: { attributes: [] } }
+      ]
+    });
+
+    if (!chat) {
+      return res.status(404).json({ message: 'Chat not found' });
+    }
+
+    if (!chat.isGroup) {
+      return res.status(400).json({ message: 'This is not a group chat, you cannot leave it' });
+    }
+
+    // Validate if user is a participant or admin
+    const isParticipant = chat.participants.some(p => p.id === userId);
+    const isAdmin = chat.admins.some(a => a.id === userId);
+    if (!isParticipant && !isAdmin) {
+      return res.status(403).json({ message: 'You are not a participant of this chat' });
+    }
+
+    // If user is the only admin, prevent leaving
+    const isOnlyAdmin = chat.admins.length === 1 && chat.admins[0].id === userId;
+    if (isOnlyAdmin && chat.participants.length > 1) {
+      return res.status(400).json({
+        message: 'You cannot leave the group chat as you are the only admin. Please assign another admin first.'
+      });
+    }
+
+    // Remove user from participants
+    await chat.removeParticipant(userId);
+    await chat.removeAdmin(userId);
+
+    // If user was an admin, check if there are still admins left
+    const remaining = await chat.getParticipants();
+    if (remaining.length === 0) {
+
+      // Remove chat and all messages in a transaction
+      await sequelize.transaction(async (t) => {
+        // Remove all messages in the chat
+        await Message.destroy({
+          where: { chatId },
+          transaction: t
+        });
+
+        // Remove the chat itself
+        await chat.destroy({ transaction: t });
+      });
+      return res.json({ message: 'Group chat deleted as you were the last participant' });
+    }
+
+    res.json({ message: 'You have left the group chat successfully' });
+  } catch (error) {
+    console.error('Error leaving group chat:', error);
+    res.status(500).json({ message: error.message || 'Server error' });
+  }
+};
+
 // Delete chat
 exports.deleteChat = async (req, res) => {
   const { chatId } = req.params;
@@ -288,44 +395,62 @@ exports.deleteChat = async (req, res) => {
 
   try {
     const chat = await Chat.findByPk(chatId, {
-      include: [{
-        association: 'participants', // as: 'participants' di belongsToMany
-        through: { attributes: [] }  // hide pivot
-      }]
+      include: [
+        {
+          association: 'participants',
+          through: { attributes: [] }
+        },
+        {
+          association: 'admins',
+          through: { attributes: [] }
+        }
+      ]
     });
 
-    if (!chat) return res.status(404).json({ message: 'Chat not found' });
+    if (!chat) {
+      return res.status(404).json({ message: 'Chat not found' });
+    }
 
-    // Check if user is a admin
+    // Validate if user is an admin
     const isAdmin = chat.admins.some(user => user.id === userId);
     if (!isAdmin) {
       return res.status(403).json({ message: 'You do not have permission to delete this chat' });
     }
 
-    // Get all participants and admins
-    const participants = chat.participants.map(p => p.id);
-    const admins = chat.admins.map(a => a.id);
-    const allUsers = [...new Set([...participants, ...admins])];
+    // Notify all participants and admins before deletion
+    const allUserIds = [
+      ...chat.participants.map(p => p.id),
+      ...chat.admins.map(a => a.id)
+    ].filter((value, index, self) => self.indexOf(value) === index);
 
-    // Remove chat and its messages
+    // Remove chat and all messages in a transaction
     await sequelize.transaction(async (t) => {
-      await Message.destroy({ where: { chatId }, transaction: t });
-      await chat.destroy({ transaction: t }); // this will also delete the chat from participants and admins
+      // Remove all messages in the chat
+      await Message.destroy({
+        where: { chatId },
+        transaction: t
+      });
+
+      // Remove the chat itself
+      await chat.destroy({ transaction: t });
     });
 
-    // Create notification for each participant
+    // Send socket notification to all participants and admins
     const notification = {
-      type: 'removed_from_chat',
-      chatId
+      type: 'chat_deleted',
+      chatId,
+      timestamp: new Date()
     };
-    for (const _userId of allUsers) {
-      if(!userId) sendSocketNotification(_userId, notification);
+
+    for (const _userId of allUserIds) {
+      sendSocketNotification(_userId, notification);
     }
 
-    res.json({ message: 'Chat deleted successfully' });
+    res.json({ message: 'Chat and all messages deleted successfully' });
+
   } catch (error) {
     console.error('Error deleting chat:', error);
-    res.status(500).json({ message: error.message || 'Server error' });
+    res.status(500).json({ message: `Server error: ${error}` });
   }
 };
 

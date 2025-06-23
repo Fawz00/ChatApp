@@ -15,6 +15,7 @@ const {
   getAllChatsForUser,
   setMessageDelivered,
   setMessageRead,
+  leaveGroupChat,
 } = require('../../controllers/mysql/chatController');
 
 // Chat
@@ -22,6 +23,7 @@ router.post('/create', auth, upload.single('groupPhoto'), createChat);
 router.get('/me/all', auth, getAllChatsForUser);
 router.get('/:chatId', auth, getChatDetail);
 router.put('/:chatId', auth, upload.single('groupPhoto'), editGroupChat);
+router.delete('/leave/:chatId', auth, leaveGroupChat);
 router.delete('/:chatId', auth, deleteChat);
 
 // Message
