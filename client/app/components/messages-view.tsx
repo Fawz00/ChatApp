@@ -13,6 +13,7 @@ import { API_URL, MessageScheme, useAuth, UserScheme, ChatScheme, API_URL_BASE }
 import WebDateTimePicker from "./dateTimePicker";
 import React from "react";
 import * as ImagePicker from 'expo-image-picker';
+import { GroupInfoModal } from '../components/modals/GroupInfoModal';
 import * as DocumentPicker from 'expo-document-picker';
 import UniversalDateTimePicker from '../components/WebCompatibleDateTimePicker';
 import { Alert } from 'react-native';
@@ -47,6 +48,7 @@ export default function MessagesView({
   const [messages, setMessages] = useState<MessageScheme[]>([]);
   const [message, setMessage] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showGroupInfo, setShowGroupInfo] = useState(false);
 
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduleTime, setScheduleTime] = useState<Date | null>(null);
@@ -197,6 +199,29 @@ export default function MessagesView({
       console.error('An error occurred:', error);
     }
   };
+
+  // Handle leave group
+      const handleLeaveGroup = async () => {
+      try {
+        const response = await fetch(`${API_URL}/chat/${loadedChat}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        const responseJson = await response.json();
+
+        if (response.ok) {
+          setLoadedChat(""); // Tutup chat room
+        } else {
+          setModal({ ...getModal, visible: true, message: responseJson.message || 'Failed to leave group.' });
+        }
+      } catch (error) {
+        console.error('Error leaving group:', error);
+        setModal({ ...getModal, visible: true, message: 'An error occurred while leaving the group.' });
+      }
+    };
 
   // handle delete message
   const handleDeleteChatRoom = async () => {
@@ -394,7 +419,16 @@ export default function MessagesView({
             })()}
         </View>
         <View style={{ alignItems: 'center' }}>
-          <Text style={styles.chatName}>{getChatName()}</Text>
+          <TouchableOpacity
+            onPress={() => {
+              if (chatDetails?.isGroup) {
+                setShowGroupInfo(true);
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.chatName}>{getChatName()}</Text>
+          </TouchableOpacity>
           <Text style={styles.status}>Active</Text>
         </View>
         <View style={styles.chatHeaderActions}>
@@ -545,6 +579,19 @@ export default function MessagesView({
         visible={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteChatRoom}
+      />
+      <GroupInfoModal
+        visible={showGroupInfo}
+        groupName={chatDetails?.name || 'Unknown Group'}
+        groupPhoto={chatDetails?.groupPhoto}
+        participants={chatDetails?.participants || []}
+        currentUser={currentUserData}
+        isAdmin={chatDetails?.admins.some(a => a.id === currentUserData?.id) || false}
+        onLeaveGroup={() => {
+          handleLeaveGroup(); // Fungsi yang kamu buat sebelumnya
+          setShowGroupInfo(false);
+        }}
+        onClose={() => setShowGroupInfo(false)}
       />
 
     </View>

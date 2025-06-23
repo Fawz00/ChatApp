@@ -22,8 +22,6 @@ import ChatListSidebar from "../components/chatlist-sidebar";
 import MessagesView from "../components/messages-view";   
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useDrawerContext } from "../components/drawer/app-drawer-navigation";
-
-
 type RootDrawerParamList = {
   App: undefined;
 };
