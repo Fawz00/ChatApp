@@ -204,27 +204,30 @@ export default function MessagesView({
   };
 
   //handle add member to group
-      const handleAddMembers = (newMembers: UserScheme[]) => {
-  setChatDetails(prev => {
-    if (!prev || !prev.participants) {
+  const handleAddMembers = (newMembers: UserScheme[]) => {
+    setChatDetails(prev => {
+      if (!prev || !prev.participants) {
+        return {
+          id: loadedChat,
+          name: chatDetails?.name || '',
+          isGroup: true,
+          participants: newMembers,
+          admins: [],
+          lastMessage: undefined,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+      }
+
       return {
-        id: loadedChat,
-        name: chatDetails?.name || '',
-        isGroup: true,
-        participants: newMembers,
-        admins: [],
-        lastMessage: undefined
+        ...prev,
+        participants: [...prev.participants, ...newMembers],
+        updatedAt: new Date().toISOString(),
       };
-    }
+    });
 
-    return {
-      ...prev,
-      participants: [...prev.participants, ...newMembers],
-    };
-  });
-
-  setShowGroupInfo(false);
-};
+    setShowGroupInfo(false);
+  };
 
   // Handle leave group
       const handleLeaveGroup = async () => {
@@ -606,17 +609,16 @@ export default function MessagesView({
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteChatRoom}
       />
-      <GroupInfoModal
-        visible={showGroupInfo}
-        groupName={chatDetails?.name || 'Unknown Group'}
-        groupPhoto={chatDetails?.groupPhoto}
-        participants={chatDetails?.participants || []}
-        currentUser={currentUserData}
-        isAdmin={chatDetails?.admins.some(a => a.id === currentUserData?.id) || false}
-        onLeaveGroup={handleLeaveGroup}
-        onAddMembers={handleAddMembers}
-        onClose={() => setShowGroupInfo(false)}
-      />
+      {chatDetails && (
+        <GroupInfoModal
+          visible={showGroupInfo}
+          currentUser={currentUserData}
+          groupData={chatDetails}
+          onLeaveGroup={handleLeaveGroup}
+          onAddMembers={handleAddMembers}
+          onClose={() => setShowGroupInfo(false)}
+        />
+      )}
     </View>
   );
 };

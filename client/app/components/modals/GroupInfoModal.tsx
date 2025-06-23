@@ -10,21 +10,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AddMemberModal } from './AddMemberModal';
-
-// Tipe data
-interface UserScheme {
-  id: string;
-  username?: string;
-  profilePhoto?: string;
-}
+import { API_URL_BASE, ChatScheme, UserScheme } from '@/app/api/AuthProvider';
 
 interface GroupInfoModalProps {
   visible: boolean;
-  groupName: string;
-  groupPhoto?: string;
-  participants: UserScheme[];
+  groupData: ChatScheme;
   currentUser: UserScheme | undefined;
-  isAdmin: boolean;
   onLeaveGroup: () => void;
   onAddMembers: (newMembers: UserScheme[]) => void; // Callback saat anggota ditambahkan
   onClose: () => void;
@@ -32,38 +23,43 @@ interface GroupInfoModalProps {
 
 export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
   visible,
-  groupName,
-  groupPhoto,
-  participants,
+  groupData,
   currentUser,
-  isAdmin,
   onLeaveGroup,
   onAddMembers,
   onClose,
 }) => {
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
 
+  React.useEffect(() => {
+    console.log(groupData.groupPhoto);
+  }, []);
+
   const renderParticipant = ({ item }: { item: UserScheme }) => (
     <View style={styles.participantItem}>
-      <Image
-        source={{
-          uri: item.profilePhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.username || 'User')}&background=random`,
-        }}
-        style={styles.avatar}
-      />
+      { item?.profilePhoto ? (
+        <Image source={{ uri: `${API_URL_BASE}/${item.profilePhoto}`.replace(/\\/g, "/") }}
+          style={styles.avatarPlaceholder}
+        />
+      ) : (
+        <View style={styles.avatarPlaceholder}>
+          <Text style={styles.teamText}>{item?.username?.charAt(0).toUpperCase() || ""}</Text>
+        </View>
+      )}
       <Text style={styles.participantName}>{item.username || 'Unknown User'}</Text>
     </View>
   );
 
   return (
     <Modal
-      animationType="slide"
+      animationType="fade"
       transparent={true}
       visible={visible}
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
+
           {/* Header Modal */}
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose}>
@@ -75,28 +71,28 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
           {/* Foto & Nama Grup */}
           <View style={styles.groupHeader}>
-            {groupPhoto ? (
-              <Image source={{ uri: groupPhoto }} style={styles.groupAvatar} />
+            {groupData.groupPhoto ? (
+              <Image source={{ uri: `${API_URL_BASE}/${groupData.groupPhoto}`.replace(/\\/g, "/") }} style={styles.groupAvatar} />
             ) : (
               <View style={styles.groupAvatarPlaceholder}>
                 <Text style={styles.groupInitial}>
-                  {groupName.charAt(0).toUpperCase()}
+                  {(groupData.name?.charAt(0)?.toUpperCase()) || ""}
                 </Text>
               </View>
             )}
-            <Text style={styles.groupName}>{groupName}</Text>
+            <Text style={styles.groupName}>{groupData.name}</Text>
           </View>
 
           {/* Daftar Partisipant */}
           <FlatList
-            data={participants}
+            data={groupData.participants || []}
             keyExtractor={(item) => item.id}
             renderItem={renderParticipant}
             contentContainerStyle={styles.participantsList}
           />
 
           {/* Tombol Add Member (hanya muncul jika admin) */}
-          {isAdmin && (
+          {(groupData?.admins.some(a => a.id === currentUser?.id) || false) && (
             <TouchableOpacity
               style={styles.addButton}
               onPress={() => setShowAddMemberModal(true)}
@@ -181,7 +177,7 @@ const styles = StyleSheet.create({
   groupInitial: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#fff',
   },
   groupName: {
     fontSize: 20,
@@ -199,12 +195,19 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
-  avatar: {
+  avatarPlaceholder: {
     width: 32,
     height: 32,
     borderRadius: 16,
+    backgroundColor: '#d1d5db',
+    marginBottom: 8,
     marginRight: 12,
-    backgroundColor: '#ccc',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  teamText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
   },
   participantName: {
     fontSize: 16,

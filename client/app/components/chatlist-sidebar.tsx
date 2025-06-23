@@ -20,13 +20,49 @@ export default function ChatListSidebar({
   privateChatList,
 }: ChatListSidebar) {
   const { loadedChat, setLoadedChat, setCreateChat } = useDrawerContext();
-  
   const [search, setSearch] = useState("");
 
   const screenWidth = Dimensions.get("window").width;
   const screenHeight = Dimensions.get("window").height;
   const isLargeScreen = screenWidth > 720;
   const isSmallHeight = screenHeight <= 530;
+
+  // Components
+
+  const ChatItem = ({ chat, isActive, onPress }: {
+    chat: ChatScheme,
+    isActive: boolean,
+    onPress: () => void
+  }) => {
+    const isGroup = chat.isGroup;
+    const chatName = isGroup
+      ? chat.name || "Unknown Group"
+      : chat.participants.find(p => p.id !== currentUserData?.id)?.username || "Unknown User";
+    const lastMessage = chat.lastMessage?.content || "No messages yet";
+    const imageSource = chat.groupPhoto ? { uri: `${API_URL_BASE}/${chat.groupPhoto}`.replace(/\\/g, "/") } : null;
+
+    return (
+      <TouchableOpacity
+        key={chat.id}
+        style={[styles.chatItem, isActive && styles.activeChatItem]}
+        onPress={onPress}
+      >
+        {imageSource ? (
+          <Image source={imageSource} style={styles.chatAvatar} />
+        ) : (
+          <View style={styles.chatAvatar}>
+            <Text style={styles.teamText}>{chatName.charAt(0).toUpperCase()}</Text>
+          </View>
+        )}
+        <View style={styles.chatItemContent}>
+          <Text style={styles.chatName}>{chatName}</Text>
+          <Text style={styles.chatPreview} numberOfLines={1}>{lastMessage}</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // React Elements
 
   return (
     <View style={isLargeScreen ? styles.sidebar : styles.sidebarMobile}>
@@ -135,34 +171,18 @@ export default function ChatListSidebar({
                 chatName = otherUser ? otherUser.username || "Unknown User" : "Unknown User";
               }
               return (
-                <TouchableOpacity
-                key={val.id}
-                style={[
-                  styles.chatItem,
-                  loadedChat === val.id && styles.activeChatItem // Highlight active chat
-                ]}
-                onPress={() => {
-                  if (loadedChat !== val.id) {
-                  setLoadedChat(val.id);
-                  }
-                }}
-                >
-                {val.groupPhoto ? (
-                  <Image source={{ uri: `${API_URL_BASE}/${val.groupPhoto}`.replace(/\\/g, "/") }}
-                  style={styles.chatAvatar}
-                  />
-                ) : (
-                  <View style={styles.chatAvatar}>
-                  <Text style={styles.teamText}>{chatName.charAt(0).toUpperCase() || ""}</Text>
-                  </View>
-                )}
-                <View style={styles.chatItemContent}>
-                  <Text style={styles.chatName}>{chatName}</Text>
-                  <Text style={styles.chatPreview} numberOfLines={1}>{lastMessage}</Text>
-                </View>
-                </TouchableOpacity>
+                <ChatItem
+                  key={val.id}
+                  chat={val}
+                  isActive={loadedChat === val.id}
+                  onPress={() => {
+                    if (loadedChat !== val.id) {
+                      setLoadedChat(val.id);
+                    }
+                  }}
+                />
               );
-              })}
+            })}
           </ScrollView>
         </View>
       ) || (!isSmallHeight ? (
@@ -216,34 +236,16 @@ export default function ChatListSidebar({
                   chatName = otherUser ? otherUser.username || "Unknown User" : "Unknown User";
                 }
                 return (
-                  <TouchableOpacity
+                  <ChatItem
                     key={val.id}
-                    style={[
-                      styles.chatItem,
-                      loadedChat === val.id && styles.activeChatItem // Highlight active chat
-                    ]}
+                    chat={val}
+                    isActive={loadedChat === val.id}
                     onPress={() => {
                       if (loadedChat !== val.id) {
                         setLoadedChat(val.id);
                       }
                     }}
-                  >
-                    { val.groupPhoto ? (
-                      <Image source={{ uri: `${API_URL_BASE}/${val.groupPhoto}`.replace(/\\/g, "/") }}
-                        style={styles.chatAvatar}
-                      />
-                    ) : (
-                      <View style={styles.chatAvatar}>
-                        <Text style={styles.teamText}>{val.name?.charAt(0).toUpperCase() || ""}</Text>
-                      </View>
-                    )}
-                    <View style={styles.chatItemContent}>
-                      <Text style={styles.chatName}>{chatName}</Text>
-                      <Text style={styles.chatPreview} numberOfLines={1}>{lastMessage}</Text>
-                    </View>
-                    {/* Optional: Add time or unread count here if available in ChatScheme */}
-                    {/* <Text style={styles.chatTime}>16:27</Text> */}
-                  </TouchableOpacity>
+                  />
                 );
               })}
 
@@ -266,32 +268,16 @@ export default function ChatListSidebar({
                   chatName = otherUser ? otherUser.username || "Unknown User" : "Unknown User";
                 }
                 return (
-                  <TouchableOpacity
+                  <ChatItem
                     key={val.id}
-                    style={[
-                      styles.chatItem,
-                      loadedChat === val.id && styles.activeChatItem // Highlight active chat
-                    ]}
+                    chat={val}
+                    isActive={loadedChat === val.id}
                     onPress={() => {
                       if (loadedChat !== val.id) {
                         setLoadedChat(val.id);
                       }
                     }}
-                  >
-                    { val.groupPhoto ? (
-                      <Image source={{ uri: `${API_URL_BASE}/${val.groupPhoto}`.replace(/\\/g, "/") }}
-                        style={styles.chatAvatar}
-                      />
-                    ) : (
-                      <View style={styles.chatAvatar}>
-                        <Text style={styles.teamText}>{val.name?.charAt(0).toUpperCase() || ""}</Text>
-                      </View>
-                    )}
-                    <View style={styles.chatItemContent}>
-                      <Text style={styles.chatName}>{chatName}</Text>
-                      <Text style={styles.chatPreview} numberOfLines={1}>{lastMessage}</Text>
-                    </View>
-                  </TouchableOpacity>
+                  />
                 );
               })}
             </ScrollView>
@@ -335,6 +321,8 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     backgroundColor: '#d1d5db',
     marginBottom: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   username: {
     fontSize: 16,
