@@ -86,8 +86,16 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   const handleSubmit = () => {
     const newMembers = users.filter(u => selectedUsers.includes(u.id));
     onAddMembers(newMembers);
+    setSelectedUsers([]);
+    setSearch("");
     onClose();
   };
+
+  const handleClose = () => {
+    setSelectedUsers([]);
+    setSearch("");
+    onClose();
+  }
 
   const renderUser = ({ item }: { item: UserScheme }) => {
     const isSelected = selectedUsers.includes(item.id);
@@ -129,7 +137,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
           {/* Tombol aksi */}
           <View style={styles.modalActions}>
-            <TouchableOpacity style={styles.btnCancel} onPress={onClose}>
+            <TouchableOpacity style={styles.btnCancel} onPress={handleClose}>
               <Text style={styles.btnCancelText}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.btnAdd} onPress={handleSubmit}>

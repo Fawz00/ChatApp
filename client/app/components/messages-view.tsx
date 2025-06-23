@@ -11,19 +11,16 @@ import {
   Platform,
 } from "react-native";
 import { API_URL, MessageScheme, useAuth, UserScheme, ChatScheme, API_URL_BASE } from "../api/AuthProvider";
-import WebDateTimePicker from "./dateTimePicker";
 import React from "react";
 import * as ImagePicker from 'expo-image-picker';
 import { GroupInfoModal } from '../components/modals/GroupInfoModal';
 import * as DocumentPicker from 'expo-document-picker';
 import UniversalDateTimePicker from '../components/WebCompatibleDateTimePicker';
-import { Alert } from 'react-native';
 import { DeleteChatModal } from "../components/modals/delete-modal";
 import { useDrawerContext } from "./drawer/app-drawer-navigation";
 import io from 'socket.io-client';
 import mime from "mime";
 import { ImagePreviewModal } from '../components/modals/ImagePreviewModal';
-import { SimpleModal } from "./modals/simple-modal";
 
 
 interface MessagesView {
@@ -356,73 +353,6 @@ export default function MessagesView({
     }
   };
 
-  //handle promote admin & remove member
-  const handlePromoteToAdmin = async (user: UserScheme) => {
-    try {
-      const response = await fetch(`${API_URL}/chat/${loadedChat}/promote-admin`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userId: user.id }),
-      });
-
-      if (response.ok) {
-        console.log('User promoted to admin');
-      } else {
-        alert('Failed to promote user to admin');
-      }
-    } catch (error) {
-      console.error('Error promoting user:', error);
-      alert('An error occurred while promoting user');
-    }
-  };
-
-const handleDemoteFromAdmin = async (user: UserScheme) => {
-  try {
-    const response = await fetch(`${API_URL}/chat/${loadedChat}/demote-admin`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId: user.id }),
-    });
-
-    if (response.ok) {
-      console.log('User demoted from admin');
-    } else {
-      alert('Failed to demote user');
-    }
-  } catch (error) {
-    console.error('Demote error:', error);
-    alert('An error occurred');
-  }
-};
-
-const handleRemoveMember = async (user: UserScheme) => {
-  try {
-    const response = await fetch(`${API_URL}/chat/${loadedChat}/remove-member`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ userId: user.id }),
-    });
-
-    if (response.ok) {
-      console.log('User removed');
-    } else {
-      alert('Failed to remove member');
-    }
-  } catch (error) {
-    console.error('Remove error:', error);
-    alert('An error occurred');
-  }
-};
-
   // handleSendMedia
   const handleSendMedia = async (uri: string, type: string) => {
     try {
@@ -723,7 +653,7 @@ const handleRemoveMember = async (user: UserScheme) => {
         visible={showImagePreview}
         imageUrl={selectedImage}
         onClose={() => setShowImagePreview(false)}
-      />             
+      />
 
       {chatDetails && (
         <GroupInfoModal
@@ -732,9 +662,6 @@ const handleRemoveMember = async (user: UserScheme) => {
           visibility={showGroupInfo}
           groupData={chatDetails}
           currentUser={currentUserData}
-          onPromoteToAdmin={handlePromoteToAdmin}
-          onDemoteFromAdmin={handleDemoteFromAdmin}
-          onRemoveMember={handleRemoveMember}
           onClose={() => setShowGroupInfo(false)}
         />
       )}

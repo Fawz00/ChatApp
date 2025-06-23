@@ -28,9 +28,6 @@ interface GroupInfoModalProps {
   visibility: boolean;
   groupData: ChatScheme;
   currentUser: UserScheme | undefined;
-  onPromoteToAdmin: (user: UserScheme) => void;
-  onDemoteFromAdmin: (user: UserScheme) => void;
-  onRemoveMember: (user: UserScheme) => void;
   onClose: () => void;
 }
 
@@ -40,9 +37,6 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
   visibility,
   groupData,
   currentUser,
-  onPromoteToAdmin,
-  onDemoteFromAdmin,
-  onRemoveMember,
   onClose,
 }) => {
   const { token, logout } = useAuth();
@@ -51,6 +45,11 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
   // const [localGroupData, setLocalGroupData] = useState<ChatScheme>(groupData);
 
   const isCurrentUserAdmin = groupData.admins.some(a => a.id === currentUser?.id);
+
+  function refresh() {
+    setRefreshMessages(!refreshMessages);
+    setRefreshSidebar(!refreshSidebar);  
+  }
 
   const handlePromoteAdmin = async (user: UserScheme) => {
     try {
@@ -69,8 +68,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
       const responseJson = await response.json();
       if (response.ok) {
-        setRefreshMessages(!refreshMessages);
-        setRefreshSidebar(!refreshSidebar);
+        refresh();
         setModal({
           ...getModal,
           isLoading: false,
@@ -85,15 +83,16 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
           isLoading: false,
           message: responseJson.message || 'Promote admin failed',
         });
+        console.error("Promote admin error:", responseJson.message);
       }
     } catch (error) {
-      console.error("Send media error:", error);
       setModal({
         ...getModal,
         visible: true,
         isLoading: false,
         message: `Failed to send media.\n${error instanceof Error ? error.message : 'Unknown error'}`,
       });
+      console.error("Send media error:", error);
     }
   };
 
@@ -114,8 +113,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
       const responseJson = await response.json();
       if (response.ok) {
-        setRefreshMessages(!refreshMessages);
-        setRefreshSidebar(!refreshSidebar);
+        refresh();
         setModal({
           ...getModal,
           isLoading: false,
@@ -130,6 +128,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
           isLoading: false,
           message: responseJson.message || 'Demote admin failed',
         });
+        console.error("Demote admin error:", responseJson.message);
       }
     } catch (error) {
       console.error("Send media error:", error);
@@ -159,8 +158,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
       const responseJson = await response.json();
       if (response.ok) {
-        setRefreshMessages(!refreshMessages);
-        setRefreshSidebar(!refreshSidebar);
+        refresh();
         setModal({
           ...getModal,
           isLoading: false,
@@ -175,6 +173,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
           isLoading: false,
           message: responseJson.message || 'Remove participant failed',
         });
+        console.error("Send media error:", responseJson.message);
       }
     } catch (error) {
       console.error("Send media error:", error);
@@ -204,8 +203,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
       const responseJson = await response.json();
       if (response.ok) {
-        setRefreshMessages(!refreshMessages);
-        setRefreshSidebar(!refreshSidebar);
+        refresh();
         setModal({
           ...getModal,
           isLoading: false,
@@ -220,6 +218,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
           isLoading: false,
           message: responseJson.message || 'Remove participant failed',
         });
+        console.error("Send media error:", responseJson.message);
       }
     } catch (error) {
       console.error("Send media error:", error);
@@ -245,8 +244,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
       const responseJson = await response.json();
       if (response.ok) {
-        setRefreshMessages(!refreshMessages);
-        setRefreshSidebar(!refreshSidebar);
+        refresh();
         setModal({
           ...getModal,
           isLoading: false,
@@ -262,6 +260,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
           isLoading: false,
           message: responseJson.message || 'Remove participant failed',
         });
+        console.error("Send media error:", responseJson.message);
       }
     } catch (error) {
       console.error("Send media error:", error);

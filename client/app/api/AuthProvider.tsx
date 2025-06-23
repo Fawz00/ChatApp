@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 
 //#region Constants
 // export const API_URL_BASE = 'https://weitnahchat.my.id'; // Uncomment this line for production
-export const API_URL_BASE = 'https://weitnahchat.my.id'; // Uncomment this line for development
+export const API_URL_BASE = 'http://192.168.213.53:5000'; // Uncomment this line for development
 export const API_URL = `${API_URL_BASE}/api`;
 
 export interface ChatScheme {
