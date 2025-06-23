@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
+  Platform,
 } from "react-native";
 import { API_URL, MessageScheme, useAuth, UserScheme, ChatScheme, API_URL_BASE } from "../api/AuthProvider";
 import WebDateTimePicker from "./dateTimePicker";
@@ -51,7 +52,7 @@ export default function MessagesView({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
-  
+  const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
 
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduleTime, setScheduleTime] = useState<Date | null>(null);
@@ -168,40 +169,58 @@ export default function MessagesView({
 
   // Handle sending a message
   const handleSend = async () => {
-    if (!message.trim()) return;
-    if (!loadedChat || !token) return;
+  if (!message.trim() && !selectedMedia) return;
 
-    setModal({ ...getModal, isLoading: true });
+  const formData = new FormData();
+  formData.append("chatId", loadedChat);
+  formData.append("content", message.trim());
 
-    try {
-      const formData = new FormData();
-      formData.append("chatId", loadedChat);
-      formData.append("content", message.trim());
-      formData.append("type", "text");
+  if (selectedMedia) {
+    const uriParts = selectedMedia.split('.');
+    const fileType = uriParts[uriParts.length - 1];
 
-      const response = await fetch(`${API_URL}/chat/send`, {
-        method: "POST",
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        body: formData,
+    formData.append("type", fileType === 'jpg' || fileType === 'png' ? 'image' : 'file');
+    
+
+    // Untuk web dan mobile berbeda
+    if (Platform.OS === 'web') {
+      const response = await fetch(selectedMedia);
+      const blob = await response.blob();
+      formData.append('media', blob, `media.${fileType}`);
+    } else {
+      formData.append('media', {
+        uri: selectedMedia,
+        name: `media.${fileType}`,
+        type: `image/${fileType}`,
       });
-
-      const responseJson = await response.json();
-      if (response.ok) {
-        setMessage("");
-        handleLoadChatMessages();
-        setScheduleTime(null); // Reset schedule time after sending
-      } else if (response.status === 401) {
-        logout();
-      } else {
-        setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
-      }
-    } catch (error) {
-      setModal({...getModal, visible: true, isLoading: false, message: `An error occurred, unable to connect the server.\n${error instanceof Error ? error.message : 'Unknown error'}`});
-      console.error('An error occurred:', error);
     }
-  };
+  } else {
+    formData.append("type", "text");
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/chat/send`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const responseJson = await response.json();
+
+    if (response.ok) {
+      setMessage('');
+      setSelectedMedia(null);
+      handleLoadChatMessages(); // Muat ulang pesan
+    } else {
+      setModal({ ...getModal, visible: true, isLoading: false, message: responseJson.message || 'Failed to send media.' });
+    }
+  } catch (error) {
+    console.error("Send error:", error);
+    setModal({ ...getModal, visible: true, isLoading: false, message: 'Failed to send media.' });
+  }
+};
 
   //handle add member to group
   const handleAddMembers = (newMembers: UserScheme[]) => {
@@ -492,7 +511,36 @@ export default function MessagesView({
                     {msg.sender.username || msg.sender.email || "Unknown"}
                   </Text>
                 )}
-                <Text style={styles.messageText}>{msg.content}</Text>
+                {msg.type === 'text' && (
+              <Text style={styles.messageText}>{msg.content}</Text>
+            )}
+
+            {msg.type === 'image' && (
+              <Image
+                source={{ uri: `${API_URL_BASE}/${msg.media}`.replace(/\\/g, "/") }}
+                style={{
+                  width: 200,
+                  height: 200,
+                  borderRadius: 8,
+                  marginVertical: 4,
+                }}
+                resizeMode="cover"
+              />
+            )}
+
+            {msg.type === 'file' && (
+              <View style={{
+                padding: 10,
+                backgroundColor: '#f1f5f9',
+                borderRadius: 8,
+                marginTop: 4,
+                maxWidth: '100%',
+              }}>
+                <Text numberOfLines={1} style={{ color: '#1e40af' }}>
+                  📄 {msg.media?.split('/').pop() || 'File'}
+                </Text>
+              </View>
+            )}
                 <Text style={styles.messageTime}>
                   {new Date(msg.updatedAt).toLocaleTimeString([], {
                   hour: "numeric",
@@ -745,3 +793,7 @@ scheduledText: {
     marginHorizontal: 4,
   },
 });
+function setSelectedMedia(arg0: null) {
+  throw new Error("Function not implemented.");
+}
+
