@@ -21,6 +21,7 @@ import { DeleteChatModal } from "../components/modals/delete-modal";
 import { useDrawerContext } from "./drawer/app-drawer-navigation";
 import io from 'socket.io-client';
 
+
 interface MessagesView {
   getModal: {
     message: string;
@@ -49,6 +50,8 @@ export default function MessagesView({
   const [message, setMessage] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  
 
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduleTime, setScheduleTime] = useState<Date | null>(null);
@@ -199,6 +202,29 @@ export default function MessagesView({
       console.error('An error occurred:', error);
     }
   };
+
+  //handle add member to group
+      const handleAddMembers = (newMembers: UserScheme[]) => {
+  setChatDetails(prev => {
+    if (!prev || !prev.participants) {
+      return {
+        id: loadedChat,
+        name: chatDetails?.name || '',
+        isGroup: true,
+        participants: newMembers,
+        admins: [],
+        lastMessage: undefined
+      };
+    }
+
+    return {
+      ...prev,
+      participants: [...prev.participants, ...newMembers],
+    };
+  });
+
+  setShowGroupInfo(false);
+};
 
   // Handle leave group
       const handleLeaveGroup = async () => {
@@ -587,13 +613,10 @@ export default function MessagesView({
         participants={chatDetails?.participants || []}
         currentUser={currentUserData}
         isAdmin={chatDetails?.admins.some(a => a.id === currentUserData?.id) || false}
-        onLeaveGroup={() => {
-          handleLeaveGroup(); // Fungsi yang kamu buat sebelumnya
-          setShowGroupInfo(false);
-        }}
+        onLeaveGroup={handleLeaveGroup}
+        onAddMembers={handleAddMembers}
         onClose={() => setShowGroupInfo(false)}
       />
-
     </View>
   );
 };

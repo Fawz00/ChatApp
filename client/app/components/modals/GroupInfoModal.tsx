@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   View,
@@ -9,6 +9,7 @@ import {
   FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { AddMemberModal } from './AddMemberModal';
 
 // Tipe data
 interface UserScheme {
@@ -25,6 +26,7 @@ interface GroupInfoModalProps {
   currentUser: UserScheme | undefined;
   isAdmin: boolean;
   onLeaveGroup: () => void;
+  onAddMembers: (newMembers: UserScheme[]) => void; // Callback saat anggota ditambahkan
   onClose: () => void;
 }
 
@@ -36,19 +38,19 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
   currentUser,
   isAdmin,
   onLeaveGroup,
+  onAddMembers,
   onClose,
 }) => {
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
 
   const renderParticipant = ({ item }: { item: UserScheme }) => (
     <View style={styles.participantItem}>
-      {/* Avatar Partisipant */}
       <Image
         source={{
-        uri: `https://ui-avatars.com/api/?name=${encodeURIComponent(item.username || 'User')}&background=random`
+          uri: item.profilePhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.username || 'User')}&background=random`,
         }}
         style={styles.avatar}
       />
-      {/* Nama Pengguna */}
       <Text style={styles.participantName}>{item.username || 'Unknown User'}</Text>
     </View>
   );
@@ -65,7 +67,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
           {/* Header Modal */}
           <View style={styles.header}>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons name="close" size={24} color="#000" />
+              <Ionicons name="close" size={24} color="#000" /> 
             </TouchableOpacity>
             <Text style={styles.title}>Group Info</Text>
             <View style={{ width: 24 }} /> {/* Spacer */}
@@ -93,12 +95,33 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
             contentContainerStyle={styles.participantsList}
           />
 
+          {/* Tombol Add Member (hanya muncul jika admin) */}
+          {isAdmin && (
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setShowAddMemberModal(true)}
+            >
+              <Ionicons name="person-add-outline" size={20} color="#fff" />
+              <Text style={styles.addButtonText}>Add Member</Text>
+            </TouchableOpacity>
+          )}
+
           {/* Tombol Leave Group */}
           <TouchableOpacity style={styles.leaveButton} onPress={onLeaveGroup}>
             <Text style={styles.leaveButtonText}>Leave Group</Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Modal Tambah Anggota */}
+      <AddMemberModal
+        visible={showAddMemberModal}
+        onClose={() => setShowAddMemberModal(false)}
+        onAddMembers={(newMembers) => {
+          onAddMembers(newMembers);
+          setShowAddMemberModal(false);
+        }}
+      />
     </Modal>
   );
 };
@@ -106,7 +129,7 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -118,6 +141,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   header: {
     flexDirection: 'row',
@@ -128,6 +156,8 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: 'bold',
+    textAlign: 'center',
+    flex: 1,
   },
   groupHeader: {
     alignItems: 'center',
@@ -156,6 +186,7 @@ const styles = StyleSheet.create({
   groupName: {
     fontSize: 20,
     fontWeight: '600',
+    marginBottom: 16,
   },
   participantsList: {
     width: '100%',
@@ -164,7 +195,7 @@ const styles = StyleSheet.create({
   participantItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
@@ -177,6 +208,7 @@ const styles = StyleSheet.create({
   },
   participantName: {
     fontSize: 16,
+    color: '#333',
   },
   leaveButton: {
     marginTop: 20,
@@ -192,4 +224,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  addButton: {
+    marginTop: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#4f46e5',
+    borderRadius: 999,
+    width: '100%',
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  addButtonText: {
+    marginLeft: 8,
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
 });
+
