@@ -47,10 +47,9 @@ export default function ChatScreen(screenProps: Props) {
   });
   
   const { token, validate, logout } = useAuth();
-  const { currentUserData } = useDrawerContext();
+  const { loadedChat, refreshSidebar, currentUserData } = useDrawerContext();
   const [groupList, setGroupList] = useState<ChatScheme[]>([]);
   const [privateChatList, setPrivateChatList] = useState<ChatScheme[]>([]);
-  const [loadedChat, setLoadedChat] = useState('');
 
   let screenWidth = Dimensions.get("window").width;
   const window = useWindowDimensions();
@@ -70,7 +69,7 @@ export default function ChatScreen(screenProps: Props) {
   React.useEffect(() => {
     handleGetChatList(true);
     handleGetChatList(false);
-  }, [groupList.length, privateChatList.length]);
+  }, [groupList.length, privateChatList.length, refreshSidebar]);
 
 
   // ====================================================
@@ -169,16 +168,12 @@ export default function ChatScreen(screenProps: Props) {
           groupList={groupList}
           privateChatList={privateChatList}
           currentUserData={currentUserData}
-          loadedChat={loadedChat}
-          setLoadedChat={setLoadedChat}
         />
       )}
 
       {/* Message view */}
       {loadedChat !== '' && (
         <MessagesView
-          loadedChat={loadedChat}
-          setLoadedChat={setLoadedChat}
           getModal={getModal}
           setModal={setModal}
           currentUserData={currentUserData}

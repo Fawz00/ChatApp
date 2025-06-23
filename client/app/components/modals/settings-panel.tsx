@@ -16,7 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { SimpleModal } from './simple-modal';
-import { API_URL, useAuth, UserScheme } from '@/app/api/AuthProvider';
+import { API_URL, API_URL_BASE, useAuth, UserScheme } from '@/app/api/AuthProvider';
 import mime from 'mime';
 import { useDrawerContext } from '../drawer/app-drawer-navigation';
 
@@ -27,7 +27,7 @@ interface SettingsPanel {
 
 const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
   const { token, logout } = useAuth();
-  const { currentUserData, validateToken, base64ToBlob } = useDrawerContext();
+  const { refreshSidebar, setRefreshSidebar, refreshMessages, setRefreshMessages, validateToken, base64ToBlob } = useDrawerContext();
 
   const [getModal, setModal] = useState({
     message: '',
@@ -49,12 +49,11 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
   React.useEffect(() => {
     validateToken()
     .then((user) => {
-      setProfileImage(user?.profilePhoto ? `${API_URL}/${user?.profilePhoto}` : null);
+      setProfileImage(user?.profilePhoto ? `${API_URL_BASE}/${user.profilePhoto}`.replace(/\\/g, "/") : null);
       setUsername(user?.username || "");
       setUserDescription(user?.description || "");
-      console.log('User data loaded:', user);
     })
-  }, []);
+  }, [isVisible]);
 
   React.useEffect(() => {
     screenWidth = window.width;
@@ -135,6 +134,8 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
       });
 
       if (response.ok) {
+        setRefreshSidebar(!refreshSidebar);
+        setRefreshMessages(!refreshMessages);
         handleClose();
       } else if (response.status === 401) {
         logout();
@@ -188,7 +189,7 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
                 onPress={pickImage}
               >
                 {profileImage ? (
-                  <Image source={{ uri: profileImage }} style={styles.profileImage} />
+                  <Image source={{ uri: `${profileImage}` }} style={styles.profileImage} />
                 ) : (
                   <View style={styles.profilePlaceholder}>
                     <Ionicons name="camera" size={30} color="#888" />

@@ -3,14 +3,13 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, TextInput,
 import { UserScheme, ChatScheme, API_URL_BASE } from '../api/AuthProvider'; // Pastikan path ini benar
 import { Feather, Ionicons } from '@expo/vector-icons'; // Jika ada ikon tambahan yang ingin Anda gunakan
 import { Props } from '../AppScreen/Chat';
+import { useDrawerContext } from './drawer/app-drawer-navigation';
 
 interface ChatListSidebar {
   screenProps: Props,
   currentUserData: UserScheme | undefined;
   groupList: ChatScheme[];
   privateChatList: ChatScheme[];
-  loadedChat: string;
-  setLoadedChat: (chatId: string) => void;
 }
 const isWeb = Platform.OS === "web";
 
@@ -19,9 +18,9 @@ export default function ChatListSidebar({
   currentUserData,
   groupList,
   privateChatList,
-  loadedChat,
-  setLoadedChat,
 }: ChatListSidebar) {
+  const { loadedChat, setLoadedChat, setCreateChat } = useDrawerContext();
+  
   const [search, setSearch] = useState("");
 
   const screenWidth = Dimensions.get("window").width;
@@ -80,11 +79,17 @@ export default function ChatListSidebar({
 
       {/* Chat menu */}
       <View style={styles.chatMenu}>
-        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+        <View style={{flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between'}}>
           { isSmallHeight && (
             <View style={{padding:21, marginRight: 8}}/>
           )}
           <Text style={styles.chatTitle}>Chat</Text>
+          <TouchableOpacity
+            style={styles.addChatButton}
+            onPress={() => setCreateChat(true)}
+          >
+            <Feather name="plus" size={16} color="#1f2937" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -99,54 +104,38 @@ export default function ChatListSidebar({
         />
       </View>
 
-      {/* Teams Section */}
-      <View style={styles.teamContainer}>
-        <Text style={styles.teamLabel}>Teams</Text>
-        <ScrollView contentContainerStyle={styles.teamsRow}>
-          {groupList.map((val) => (
-            <TouchableOpacity
-              key={val.id}
-              style={[
-                styles.teamButton,
-                loadedChat === val.id && styles.activeChatItem // Highlight active chat
-              ]}
-              onPress={() => {
-                if (loadedChat !== val.id) {
-                  setLoadedChat(val.id);
-                }
-              }}
-            >
-              { val.groupPhoto ? (
-                <Image source={{ uri: `${API_URL_BASE}/${val.groupPhoto}`.replace(/\\/g, "/") }}
-                  style={styles.teamCircle}
-                />
-              ) : (
-                <View style={styles.teamCircle}>
-                  <Text style={styles.teamText}>{val.name?.charAt(0).toUpperCase() || ""}</Text>
-                </View>
-              )}
-              <Text style={styles.teamName}>{val.name || "Unknown Group"}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+      <View style={styles.line} />
 
-      {/* Chats Section */}
-      <View style={styles.chatListContainer}>
-        <Text style={styles.chatListHeader}>Chats</Text>
-        <ScrollView style={styles.chatListScrollView}>
-          {privateChatList.map((val) => {
-            let chatName: string;
-            let lastMessage: string = val.lastMessage?.content || "No messages yet";
-
-            if (val.isGroup) {
-              chatName = val.name || "Unknown Group";
-            } else {
-              const otherUser = val.participants.find(A => A.id !== currentUserData?.id);
-              chatName = otherUser ? otherUser.username || "Unknown User" : "Unknown User";
-            }
-            return (
-              <TouchableOpacity
+      {/* Search Result Section */}
+      { search && (
+        <View style={styles.chatListContainer}>
+          <Text style={styles.chatListHeader}>Search</Text>
+          <ScrollView style={styles.chatListScrollView}>
+            {[...groupList, ...privateChatList]
+              .filter(chat => {
+              // Determine chat name for both group and private chats
+              let chatName: string | undefined;
+              if ('isGroup' in chat && !chat.isGroup) {
+                // Private chat
+                chatName = chat.participants.find(p => p.id !== currentUserData?.id)?.username;
+              } else {
+                // Group chat
+                chatName = chat.name;
+              }
+              return chatName?.toLowerCase().includes(search.toLowerCase());
+              })
+              .map((val) => {
+              let chatName: string;
+              let lastMessage: string = (val as any).lastMessage?.content || "No messages yet";
+              let isGroup = 'isGroup' in val ? val.isGroup : true;
+              if (isGroup) {
+                chatName = val.name || "Unknown Group";
+              } else {
+                const otherUser = val.participants.find((A: any) => A.id !== currentUserData?.id);
+                chatName = otherUser ? otherUser.username || "Unknown User" : "Unknown User";
+              }
+              return (
+                <TouchableOpacity
                 key={val.id}
                 style={[
                   styles.chatItem,
@@ -154,30 +143,162 @@ export default function ChatListSidebar({
                 ]}
                 onPress={() => {
                   if (loadedChat !== val.id) {
-                    setLoadedChat(val.id);
+                  setLoadedChat(val.id);
                   }
                 }}
-              >
-                { val.groupPhoto ? (
+                >
+                {val.groupPhoto ? (
                   <Image source={{ uri: `${API_URL_BASE}/${val.groupPhoto}`.replace(/\\/g, "/") }}
-                    style={styles.chatAvatar}
+                  style={styles.chatAvatar}
                   />
                 ) : (
                   <View style={styles.chatAvatar}>
-                    <Text style={styles.teamText}>{val.name?.charAt(0).toUpperCase() || ""}</Text>
+                  <Text style={styles.teamText}>{chatName.charAt(0).toUpperCase() || ""}</Text>
                   </View>
                 )}
                 <View style={styles.chatItemContent}>
                   <Text style={styles.chatName}>{chatName}</Text>
                   <Text style={styles.chatPreview} numberOfLines={1}>{lastMessage}</Text>
                 </View>
-                {/* Optional: Add time or unread count here if available in ChatScheme */}
-                {/* <Text style={styles.chatTime}>16:27</Text> */}
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+                </TouchableOpacity>
+              );
+              })}
+          </ScrollView>
+        </View>
+      ) || (!isSmallHeight ? (
+        <>
+          {/* Teams Section */}
+          <View>
+            <Text style={styles.teamLabel}>Teams</Text>
+            <ScrollView contentContainerStyle={styles.teamsRow}>
+              {groupList.map((val) => (
+                <TouchableOpacity
+                  key={val.id}
+                  style={[
+                    styles.teamButton,
+                    loadedChat === val.id && styles.activeChatItem // Highlight active chat
+                  ]}
+                  onPress={() => {
+                    if (loadedChat !== val.id) {
+                      setLoadedChat(val.id);
+                    }
+                  }}
+                >
+                  { val.groupPhoto ? (
+                    <Image source={{ uri: `${API_URL_BASE}/${val.groupPhoto}`.replace(/\\/g, "/") }}
+                      style={styles.teamCircle}
+                    />
+                  ) : (
+                    <View style={styles.teamCircle}>
+                      <Text style={styles.teamText}>{val.name?.charAt(0).toUpperCase() || ""}</Text>
+                    </View>
+                  )}
+                  <Text style={styles.teamName}>{val.name || "Unknown Group"}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          <View style={styles.line} />
+
+          {/* Chats Section */}
+          <View style={styles.chatListContainer}>
+            <Text style={styles.chatListHeader}>Chats</Text>
+            <ScrollView style={styles.chatListScrollView}>
+              {privateChatList.map((val) => {
+                let chatName: string;
+                let lastMessage: string = val.lastMessage?.content || "No messages yet";
+
+                if (val.isGroup) {
+                  chatName = val.name || "Unknown Group";
+                } else {
+                  const otherUser = val.participants.find(A => A.id !== currentUserData?.id);
+                  chatName = otherUser ? otherUser.username || "Unknown User" : "Unknown User";
+                }
+                return (
+                  <TouchableOpacity
+                    key={val.id}
+                    style={[
+                      styles.chatItem,
+                      loadedChat === val.id && styles.activeChatItem // Highlight active chat
+                    ]}
+                    onPress={() => {
+                      if (loadedChat !== val.id) {
+                        setLoadedChat(val.id);
+                      }
+                    }}
+                  >
+                    { val.groupPhoto ? (
+                      <Image source={{ uri: `${API_URL_BASE}/${val.groupPhoto}`.replace(/\\/g, "/") }}
+                        style={styles.chatAvatar}
+                      />
+                    ) : (
+                      <View style={styles.chatAvatar}>
+                        <Text style={styles.teamText}>{val.name?.charAt(0).toUpperCase() || ""}</Text>
+                      </View>
+                    )}
+                    <View style={styles.chatItemContent}>
+                      <Text style={styles.chatName}>{chatName}</Text>
+                      <Text style={styles.chatPreview} numberOfLines={1}>{lastMessage}</Text>
+                    </View>
+                    {/* Optional: Add time or unread count here if available in ChatScheme */}
+                    {/* <Text style={styles.chatTime}>16:27</Text> */}
+                  </TouchableOpacity>
+                );
+              })}
+
+            </ScrollView>
+          </View>
+        </>
+      ):(
+        <>
+          <View style={styles.chatListContainer}>
+            <Text style={styles.chatListHeader}>Chats & Teams</Text>
+            <ScrollView style={styles.chatListScrollView}>
+              {[...groupList, ...privateChatList].map((val) => {
+                let chatName: string;
+                let lastMessage: string = val.lastMessage?.content || "No messages yet";
+
+                if (val.isGroup) {
+                  chatName = val.name || "Unknown Group";
+                } else {
+                  const otherUser = val.participants.find(A => A.id !== currentUserData?.id);
+                  chatName = otherUser ? otherUser.username || "Unknown User" : "Unknown User";
+                }
+                return (
+                  <TouchableOpacity
+                    key={val.id}
+                    style={[
+                      styles.chatItem,
+                      loadedChat === val.id && styles.activeChatItem // Highlight active chat
+                    ]}
+                    onPress={() => {
+                      if (loadedChat !== val.id) {
+                        setLoadedChat(val.id);
+                      }
+                    }}
+                  >
+                    { val.groupPhoto ? (
+                      <Image source={{ uri: `${API_URL_BASE}/${val.groupPhoto}`.replace(/\\/g, "/") }}
+                        style={styles.chatAvatar}
+                      />
+                    ) : (
+                      <View style={styles.chatAvatar}>
+                        <Text style={styles.teamText}>{val.name?.charAt(0).toUpperCase() || ""}</Text>
+                      </View>
+                    )}
+                    <View style={styles.chatItemContent}>
+                      <Text style={styles.chatName}>{chatName}</Text>
+                      <Text style={styles.chatPreview} numberOfLines={1}>{lastMessage}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </>
+      ))}
+
     </View>
   );
 }
@@ -226,10 +347,6 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    borderBottomWidth: 2,
-    borderBottomColor: "#e0e0e0",
-    marginBottom: 24,
-    paddingBottom: 6,
   },
   icon: {
     marginRight: 8,
@@ -241,12 +358,6 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     backgroundColor: 'rgba(229, 231, 235, 0.5)', // Light gray background
-  },
-  teamContainer: {
-    marginBottom: 24,
-    paddingBottom: 16,
-    borderBottomWidth: 2,
-    borderBottomColor: "#e0e0e0",
   },
   teamLabel: {
     fontWeight: 'bold',
@@ -329,6 +440,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  addChatButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e0e7ff',
+    borderRadius: 8,
+    padding: 8,
+    marginLeft: 'auto',
+  },
+  line: {
+    paddingTop: 12,
+    borderBottomWidth: 2,
+    borderBottomColor: "#e0e0e0",
     marginBottom: 16,
   },
 });

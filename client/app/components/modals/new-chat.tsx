@@ -18,7 +18,7 @@ const isWeb = Platform.OS === "web";
 
 const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
   const { token, logout } = useAuth();
-  const { currentUserData, base64ToBlob } = useDrawerContext();
+  const { setLoadedChat, refreshSidebar, setRefreshSidebar, refreshMessages, setRefreshMessages, currentUserData, base64ToBlob } = useDrawerContext();
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState<UserScheme[]>([]);
 
@@ -154,6 +154,9 @@ const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
 
       if (response.ok) {
         const responseJson = await response.json();
+        setLoadedChat(responseJson.chatId);
+        setRefreshSidebar(!refreshSidebar);
+        setRefreshMessages(!refreshMessages);
         handleClose();
       } else if (response.status === 401) {
         logout();
@@ -183,15 +186,13 @@ const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
       formData.append("userIds", JSON.stringify(addedUserId.map(user => user.id)));
       formData.append("isGroup", "true");
       formData.append("name", groupName);
-      
-      if (groupDescription) {
-        formData.append("description", groupDescription);
-      }
+      if (groupDescription) formData.append("description", groupDescription);
+        
       if (groupPhoto) {
         if (groupPhoto.startsWith("data:image")) {
           const blob = base64ToBlob(groupPhoto);
           const file = new File([blob], "group_photo." + blob.type.split("/")[1], { type: blob.type });
-          formData.append("groupPhoto", `${API_URL_BASE}/${file}`.replace(/\\/g, "/"));
+          formData.append("groupPhoto", file);
         } else {
           const imageName = groupPhoto ? groupPhoto.split('/').pop() : 'group_photo.jpg';
           const mimeType = mime.getType(groupPhoto);
@@ -212,6 +213,10 @@ const NewChatPanel: React.FC<NewChatPanel> = ({ onClose, isVisible }) => {
       });
 
       if (response.ok) {
+        const responseJson = await response.json();
+        setLoadedChat(responseJson.chatId);
+        setRefreshSidebar(!refreshSidebar);
+        setRefreshMessages(!refreshMessages);
         handleClose();
       } else {
         const errorData = await response.json();

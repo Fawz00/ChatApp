@@ -7,8 +7,9 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Image,
 } from "react-native";
-import { API_URL, MessageScheme, useAuth, UserScheme, ChatScheme } from "../api/AuthProvider";
+import { API_URL, MessageScheme, useAuth, UserScheme, ChatScheme, API_URL_BASE } from "../api/AuthProvider";
 import WebDateTimePicker from "./dateTimePicker";
 import React from "react";
 import * as ImagePicker from 'expo-image-picker';
@@ -16,11 +17,10 @@ import * as DocumentPicker from 'expo-document-picker';
 import UniversalDateTimePicker from '../components/WebCompatibleDateTimePicker';
 import { Alert } from 'react-native';
 import { DeleteChatModal } from "../components/modals/delete-modal";
-
+import { useDrawerContext } from "./drawer/app-drawer-navigation";
+import io from 'socket.io-client';
 
 interface MessagesView {
-  loadedChat: string;
-  setLoadedChat: (chatId: string) => void;
   getModal: {
     message: string;
     isLoading: boolean;
@@ -35,38 +35,51 @@ interface MessagesView {
 }
 
 export default function MessagesView({
-  loadedChat,
-  setLoadedChat,
   getModal,
   setModal,
   currentUserData,
 }: MessagesView) {
   const { token, logout } = useAuth();
+  const { loadedChat, setLoadedChat, setRefreshMessages, refreshMessages, setRefreshSidebar, refreshSidebar } = useDrawerContext();
+
   const [chatScrollView, setChatScrollView] = useState<ScrollView | null>(null);
   const [chatDetails, setChatDetails] = useState<ChatScheme | undefined>(undefined);
   const [messages, setMessages] = useState<MessageScheme[]>([]);
   const [message, setMessage] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  
 
-  // On loaded chat change, fetch the messages for the selected 
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduleTime, setScheduleTime] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // const socket = io(`${API_URL}`);
+  //   React.useEffect(() => {
+  //   console.log(currentUserData?.id);
+  //   socket.emit('register', currentUserData?.id); // kirim userId setelah login
+
+  //   socket.on('notification', (notif) => {
+  //     console.log('Notifikasi baru:', notif);
+  //     setRefreshMessages(!refreshMessages);
+  //   });
+
+  //   return () => {
+  //     socket.disconnect();
+  //   };
+  // }, []);
 
   React.useEffect(() => {
     if (!loadedChat) return;
     setMessages([]); // Clear previous messages
     handleLoadChatMessages();
     handleGetChatDetails();
-  }, [loadedChat]);
+  }, [loadedChat, refreshMessages]);
 
   // Scroll to the end of the chat messages when new messages are added
   React.useEffect(() => {
     if (chatScrollView) {
       chatScrollView.scrollToEnd({ animated: true });
     }
-  }, [messages.length]);
+  }, [messages.length, refreshMessages]);
 
   // ============================================
   // API Calls
@@ -186,83 +199,82 @@ export default function MessagesView({
   };
 
   // handle delete message
- const handleDeleteChatRoom = () => {
-  Alert.alert(
-    "Delete Chat Room",
-    "Are you sure you want to delete this chat room? This action cannot be undone.",
-    [
-      {
-        text: "Cancel",
-        style: "cancel"
-      },
-      {
-        text: "Delete",
-        onPress: async () => {
-          try {
-            const response = await fetch(`${API_URL}/chat/${loadedChat}`, {
-              method: 'DELETE',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-            });
+  const handleDeleteChatRoom = async () => {
+    setShowDeleteModal(false);
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Request timed out'));
+        }, 7000);
+      });
 
-            if (response.ok) {
-              // Berhasil hapus chat room
-              setLoadedChat(""); // Kembali ke daftar chat
-            } else if (response.status === 401) {
-              logout(); // Token tidak valid
-            } else {
-              const responseJson = await response.json();
-              setModal({
-                ...getModal,
-                visible: true,
-                isLoading: false,
-                message: responseJson.message || 'An error occurred while deleting the chat room.',
-              });
+      const response = await Promise.race(
+        [
+          fetch(`${API_URL}/chat/${loadedChat}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
             }
-          } catch (error) {
-            console.error('Error deleting chat room:', error);
-            setModal({
-              ...getModal,
-              visible: true,
-              isLoading: false,
-              message: 'Failed to delete chat room.',
-            });
-          }
-        },
-      },
-    ],
-    { cancelable: false }
-  );
-};
+          })
+        , timeoutPromise]
+      );
 
-
-  // Handle scheduling a message
-        const handleScheduleMessage = (time: Date) => {
-          if (!message.trim()) return;
-          const delay = time.getTime() - new Date().getTime();
-          if (delay <= 0) {
-            alert("Scheduled time must be in the future.");
-            return;
-          }
-
-          const scheduledMessage = message.trim();
-
-          // Kosongkan input & reset state
-          setMessage("");
-          setIsScheduling(false);
-
+      if (response instanceof Response) {
+        if (response.ok) {
+          setRefreshMessages(!refreshMessages);
+          setRefreshSidebar(!refreshSidebar); 
+          setLoadedChat(""); // Kembali ke daftar chat
+        } else if (response.status === 401) {
+          logout(); // Token tidak valid
+        } else {
+          const responseJson = await response.json();
           setModal({
             ...getModal,
             visible: true,
             isLoading: false,
-            message: `Message will be sent at ${time.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} on ${time.toLocaleDateString()}`,
+            message: responseJson.message || 'An error occurred while deleting the chat room.',
           });
+        }
+      } else {
+        setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, invalid server response.'});
+      }
+    } catch (error) {
+      console.error('Error deleting chat room:', error);
+      setModal({
+        ...getModal,
+        visible: true,
+        isLoading: false,
+        message: 'Failed to delete chat room.',
+      });
+    }
+  };
 
-          setTimeout(() => {
-            sendScheduledMessage(scheduledMessage);
-          }, delay);
-        };
+  // Handle scheduling a message
+  const handleScheduleMessage = (time: Date) => {
+    if (!message.trim()) return;
+    const delay = time.getTime() - new Date().getTime();
+    if (delay <= 0) {
+      alert("Scheduled time must be in the future.");
+      return;
+    }
+
+    const scheduledMessage = message.trim();
+
+    // Kosongkan input & reset state
+    setMessage("");
+    setIsScheduling(false);
+
+    setModal({
+      ...getModal,
+      visible: true,
+      isLoading: false,
+      message: `Message will be sent at ${time.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })} on ${time.toLocaleDateString()}`,
+    });
+
+    setTimeout(() => {
+      // sendScheduledMessage(scheduledMessage);
+    }, delay);
+  };
 
 
   // handlePickImage
@@ -365,7 +377,21 @@ export default function MessagesView({
           >
             <Ionicons name="arrow-back" size={24} />
           </TouchableOpacity>
-          <View style={styles.chatAvatar} />
+            {(() => {
+              let image = "";
+              if(chatDetails?.isGroup) {
+                image = `${chatDetails?.groupPhoto}` || '';
+              } else {
+                const otherUser = chatDetails?.participants.find(A => A.id !== currentUserData?.id);
+                image = otherUser?.profilePhoto || '';
+              }
+              return (
+                <Image
+                source={{ uri: `${API_URL_BASE}/${image}`.replace(/\\/g, "/") }}
+                style={styles.chatAvatar}
+                />
+              );
+            })()}
         </View>
         <View style={{ alignItems: 'center' }}>
           <Text style={styles.chatName}>{getChatName()}</Text>
@@ -387,48 +413,51 @@ export default function MessagesView({
           setChatScrollView(ref);
         }}
       >
-        {messages.map(msg => {
-          console.log("Message:", msg);
-          const isMyMessage = msg.sender.id === currentUserData?.id;
-          return (
-            <View
-              key={msg.id}
-              style={[
-                styles.messageBubble,
-                isMyMessage ? styles.myMessage : styles.otherMessage
-              ]}
-            >
-              {!isMyMessage && (
-                <Text style={styles.sendernameText}>
-                  {msg.sender.username || msg.sender.email || "Unknown"}
+        <View style={styles.chatMessagesContainer}>
+          {messages.map(msg => {
+            const isMyMessage = msg.sender.id === currentUserData?.id;
+            return (
+              <View
+                key={msg.id}
+                style={[
+                  styles.messageBubble,
+                  isMyMessage ? styles.myMessage : styles.otherMessage
+                ]}
+              >
+                {!isMyMessage && (
+                  <Text style={styles.sendernameText}>
+                    {msg.sender.username || msg.sender.email || "Unknown"}
+                  </Text>
+                )}
+                <Text style={styles.messageText}>{msg.content}</Text>
+                <Text style={styles.messageTime}>
+                  {new Date(msg.updatedAt).toLocaleTimeString([], {
+                  hour: "numeric",
+                  minute: "2-digit",
+                })}{" "}
+                {isMyMessage && (
+                  <Ionicons
+                    // name={
+                    //   msg.isRead
+                    //     ? "checkmark-done"
+                    //     : msg.isDelivered
+                    //     ? "checkmark"
+                    //     : "time-outline"
+                    // }
+                    name="checkmark-done"
+                    size={14}
+                    color={true ? "#4f46e5" : "#6b7280"}
+                  />
+                )}
+                
                 </Text>
-              )}
-              <Text style={styles.messageText}>{msg.content}</Text>
-              <Text style={styles.messageTime}>
-                {new Date(msg.updatedAt).toLocaleTimeString([], {
-                hour: "numeric",
-                minute: "2-digit",
-              })}{" "}
-              {isMyMessage && (
-                <Ionicons
-                  // name={
-                  //   msg.isRead
-                  //     ? "checkmark-done"
-                  //     : msg.isDelivered
-                  //     ? "checkmark"
-                  //     : "time-outline"
-                  // }
-                  name="checkmark-done"
-                  size={14}
-                  color={true ? "#4f46e5" : "#6b7280"}
-                />
-              )}
-              
-              </Text>
-            </View>
-          );
-        })}
+              </View>
+            );
+          })}
+        </View>
       </ScrollView>
+
+      {/* Date and Time Picker */}
 
       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
        {showDatePicker && (
@@ -559,19 +588,30 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
   },
+  chatMessagesContainer: {
+    flex: 1,
+    flexDirection: 'column',
+    borderRadius: 8,
+    overflow: 'hidden',
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 700,
+  },
   messageBubble: {
     padding: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     marginBottom: 8,
     maxWidth: '70%',
   },
   myMessage: {
     backgroundColor: '#dbeafe',
     alignSelf: 'flex-end',
+    borderTopRightRadius: 0,
   },
   otherMessage: {
     backgroundColor: '#e5e7eb',
     alignSelf: 'flex-start',
+    borderTopLeftRadius: 0,
   },
   messageText: {
     fontSize: 14,

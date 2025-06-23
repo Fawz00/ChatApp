@@ -11,9 +11,19 @@ import { useAuth, UserScheme } from '@/app/api/AuthProvider';
 import React from 'react';
 
 interface DrawerContextType {
+  refreshSidebar: boolean;
+  setRefreshSidebar: (value: boolean) => void;
+  refreshMessages: boolean;
+  setRefreshMessages: (value: boolean) => void;
+
+  loadedChat: string;
+  setLoadedChat: (chatId: string) => void;
+
   currentUserData: UserScheme | undefined;
   validateToken: () => Promise<UserScheme | undefined>;
+
   base64ToBlob: (base64Data: string) => Blob;
+
   openSettings: boolean;
   setOpenSettings: (value: boolean) => void;
   createChat: boolean;
@@ -43,6 +53,10 @@ const AppStack = () => {
 export const AppDrawerNavigator = () => {
   const { validate, logout } = useAuth();
   const [currentUserData, setCurrentUserData] = useState<UserScheme | undefined>(undefined);
+  const [loadedChat, setLoadedChat] = useState('');
+
+  const [refreshSidebar, setRefreshSidebar] = useState(false);
+  const [refreshMessages, setRefreshMessages] = useState(false);
 
   const [openSettings, setOpenSettings] = useState(false);
   const [createChat, setCreateChat] = useState(false);
@@ -85,7 +99,7 @@ export const AppDrawerNavigator = () => {
   }
 
   return (
-    <DrawerContext.Provider value={{ currentUserData, validateToken, base64ToBlob, openSettings, setOpenSettings, createChat, setCreateChat }}>
+    <DrawerContext.Provider value={{ refreshSidebar, setRefreshSidebar, refreshMessages, setRefreshMessages, loadedChat, setLoadedChat, currentUserData, validateToken, base64ToBlob, openSettings, setOpenSettings, createChat, setCreateChat }}>
 
       {/* Create New Chat */}
       <NewChatPanel isVisible={createChat} onClose={() => setCreateChat(false)} />

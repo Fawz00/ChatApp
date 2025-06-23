@@ -1,6 +1,6 @@
 // components/modals/DeleteChatModal.tsx
 import React from 'react';
-import { View, Modal, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, Modal, TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
 
 interface DeleteChatModalProps {
   visible: boolean;
