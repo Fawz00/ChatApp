@@ -21,6 +21,7 @@ import { Alert } from 'react-native';
 import { DeleteChatModal } from "../components/modals/delete-modal";
 import { useDrawerContext } from "./drawer/app-drawer-navigation";
 import io from 'socket.io-client';
+import mime from "mime";
 
 
 interface MessagesView {
@@ -43,7 +44,7 @@ export default function MessagesView({
   currentUserData,
 }: MessagesView) {
   const { token, logout } = useAuth();
-  const { loadedChat, setLoadedChat, setRefreshMessages, refreshMessages, setRefreshSidebar, refreshSidebar } = useDrawerContext();
+  const { loadedChat, setLoadedChat, setRefreshMessages, refreshMessages, setRefreshSidebar, refreshSidebar, base64ToBlob } = useDrawerContext();
 
   const [chatScrollView, setChatScrollView] = useState<ScrollView | null>(null);
   const [chatDetails, setChatDetails] = useState<ChatScheme | undefined>(undefined);
@@ -180,7 +181,6 @@ export default function MessagesView({
     const fileType = uriParts[uriParts.length - 1];
 
     formData.append("type", fileType === 'jpg' || fileType === 'png' ? 'image' : 'file');
-    
 
     // Untuk web dan mobile berbeda
     if (Platform.OS === 'web') {
@@ -192,7 +192,7 @@ export default function MessagesView({
         uri: selectedMedia,
         name: `media.${fileType}`,
         type: `image/${fileType}`,
-      });
+      } as any);
     }
   } else {
     formData.append("type", "text");
@@ -352,16 +352,36 @@ export default function MessagesView({
 
   // handlePickImage
   const handlePickImage = async () => {
-  try {
+    (async () => {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        setModal({
+          visible: true,
+          isLoading: false,
+          message: 'Please allow access to storage to select images.',
+        });
+        return;
+      }
+    })();
+
+    try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 1,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
       });
+
       if (!result.canceled && result.assets.length > 0) {
-        const image = result.assets[0];
-        await handleSendMedia(image.uri, image.mimeType || 'image/jpeg', 'image');
+        const image = result.assets[0].uri;
+        await handleSendMedia(image, 'image');
       }
     } catch (error) {
+      setModal({
+        visible: true,
+        isLoading: false,
+        message: 'Please allow access to storage to select images.',
+      });
       console.error("Image pick error:", error);
     }
   };
@@ -374,7 +394,7 @@ export default function MessagesView({
       });
 
       if ((result.output?.length || 0) > 0 && result.assets && result.assets.length > 0) {
-        await handleSendMedia(result.assets[0].uri, result.assets[0].mimeType || 'application/octet-stream', 'file');
+        await handleSendMedia(result.assets[0].uri, 'file');
       }
     } catch (error) {
       console.error("File pick error:", error);
@@ -382,21 +402,27 @@ export default function MessagesView({
   };
 
   // handleSendMedia
-  const handleSendMedia = async (uri: string, mimeType: string, type: "image" | "file") => {
+  const handleSendMedia = async (uri: string, type: string) => {
     try {
-      setModal({ ...getModal, isLoading: true });
-
-      const fileName = uri.split('/').pop() || 'file';
-      const fileExt = fileName.split('.').pop();
+      setModal({ ...getModal, isLoading: true, visible: true });
 
       const formData = new FormData();
       formData.append('chatId', loadedChat);
       formData.append('type', type);
-      formData.append('file', {
-        uri,
-        name: fileName,
-        type: mimeType,
-      } as any);
+      
+      if (uri.startsWith("data:image")) {
+        const blob = base64ToBlob(uri);
+        const file = new File([blob], "photo." + blob.type.split("/")[1], { type: blob.type });
+        formData.append("media", file);
+      } else {
+        const imageName = uri ? uri.split('/').pop() : 'photo.jpg';
+        const mimeType = mime.getType(uri);
+        formData.append("media", {
+          uri,
+          name: imageName,
+          type: mimeType || 'image/jpeg',
+        } as any);
+      }
 
       const response = await fetch(`${API_URL}/chat/send`, {
         method: 'POST',
@@ -409,6 +435,11 @@ export default function MessagesView({
       const responseJson = await response.json();
       if (response.ok) {
         handleLoadChatMessages();
+        setModal({
+          ...getModal,
+          isLoading: false,
+          visible: false,
+        })
       } else if (response.status === 401) {
         logout();
       } else {

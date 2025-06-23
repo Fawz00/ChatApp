@@ -23,60 +23,57 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   onClose,
   onAddMembers,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<UserScheme[]>([]);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
+  const [users, setUsers] = useState<UserScheme[]>([]);
 
   const { token } = useAuth(); // Ambil token dari context
-
-  // Debounce search
+  
+  // Fetch users based on search input
   useEffect(() => {
-    if (!token) return;
+    const fetchUsers = async () => {
+      if (search.length > 0) {
+        try {
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(new Error('Request timed out'));
+            }, 7000);
+          });
 
-    if (searchQuery.trim() === '') {
-      setSearchResults([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      try {
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => {
-            reject(new Error('Request timed out'));
-          }, 7000);
-        });
-
-        const response = await Promise.race([
-          fetch(`${API_URL}/user/search?query=${encodeURIComponent(searchQuery)}`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
+          const response = await Promise.race(
+            [
+              fetch(`${API_URL}/user/find/${search}`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                }
+              })
+            , timeoutPromise]
+          );
+          
+          if (response instanceof Response) {
+            if (response.ok) {
+              const responseJson = await response.json();
+              setUsers(responseJson);
+            } else if (response.status === 401) {
+              logout();
             }
-          }),
-          timeoutPromise,
-        ]);
-
-        if (response instanceof Response) {
-          if (response.ok) {
-            const responseJson = await response.json();
-            // Pastikan respons memiliki data array user
-            setSearchResults(responseJson.data || []);
-          } else if (response.status === 401) {
-            logout();
-          } else {
-            const errorData = await response.json();
-            console.warn(errorData.message || 'Search failed');
-            setSearchResults([]);
           }
+
+        } catch (error) {
+          console.error("Error fetching users:", error);
         }
-      } catch (error) {
-        console.error('Error fetching users:', error);
-        setSearchResults([]);
+      } else {
+        setUsers([]);
       }
+    };
+
+    const debounceFetch = setTimeout(() => {
+      fetchUsers();
     }, 300); // Debounce 300ms
 
-    return () => clearTimeout(timer);
-  }, [searchQuery, token]);
+    return () => clearTimeout(debounceFetch); // Cleanup on unmount
+  }, [search]);
 
   const toggleSelectUser = (userId: string) => {
     if (selectedUsers.includes(userId)) {
@@ -87,7 +84,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   };
 
   const handleSubmit = () => {
-    const newMembers = searchResults.filter(u => selectedUsers.includes(u.id));
+    const newMembers = users.filter(u => selectedUsers.includes(u.id));
     onAddMembers(newMembers);
     onClose();
   };
@@ -117,14 +114,14 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
           {/* Input pencarian */}
           <TextInput
             placeholder="Search users..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+            value={search}
+            onChangeText={(text) => setSearch(text)}
             style={styles.searchInput}
           />
 
           {/* Hasil pencarian */}
           <FlatList
-            data={searchResults}
+            data={users}
             keyExtractor={(item) => item.id}
             renderItem={renderUser}
             contentContainerStyle={styles.userList}
