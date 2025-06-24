@@ -13,6 +13,7 @@ import { AddMemberModal } from './AddMemberModal';
 import { API_URL, API_URL_BASE, ChatScheme, useAuth, UserScheme } from '@/app/api/AuthProvider';
 import mime from 'mime';
 import { useDrawerContext } from '../drawer/app-drawer-navigation';
+import { DeleteChatModal } from './delete-modal';
 
 interface GroupInfoModalProps {
   getModal: {
@@ -26,6 +27,8 @@ interface GroupInfoModalProps {
     visible: boolean;
   }) => void;
   visibility: boolean;
+  setShowDeleteModal: React.Dispatch<React.SetStateAction<boolean>>;
+  showDeleteModal: boolean;
   groupData: ChatScheme;
   currentUser: UserScheme | undefined;
   onClose: () => void;
@@ -35,12 +38,14 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
   getModal,
   setModal,
   visibility,
+  setShowDeleteModal,
+  showDeleteModal,
   groupData,
   currentUser,
   onClose,
 }) => {
   const { token, logout } = useAuth();
-  const { setRefreshMessages, refreshMessages, setRefreshSidebar, refreshSidebar, base64ToBlob } = useDrawerContext();
+  const { loadedChat, setLoadedChat, setRefreshMessages, refreshMessages, setRefreshSidebar, refreshSidebar, base64ToBlob } = useDrawerContext();
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   // const [localGroupData, setLocalGroupData] = useState<ChatScheme>(groupData);
 
@@ -53,8 +58,6 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
   const handlePromoteAdmin = async (user: UserScheme) => {
     try {
-      setModal({ ...getModal, isLoading: true, visible: true });
-
       const formData = new FormData();
       formData.append('addAdmins', JSON.stringify([user.id]));
 
@@ -98,8 +101,6 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
   const handleDemoteAdmin = async (user: UserScheme) => {
     try {
-      setModal({ ...getModal, isLoading: true, visible: true });
-
       const formData = new FormData();
       formData.append('removeAdmins', JSON.stringify([user.id]));
 
@@ -143,8 +144,6 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
   const handleAddParticipant = async (users: UserScheme[]) => {
     try {
-      setModal({ ...getModal, isLoading: true, visible: true });
-
       const formData = new FormData();
       formData.append('addParticipants', JSON.stringify(users.map(u => u.id)));
 
@@ -188,8 +187,6 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
   const handleRemoveParticipant = async (user: UserScheme) => {
     try {
-      setModal({ ...getModal, isLoading: true, visible: true });
-
       const formData = new FormData();
       formData.append('removeParticipants', JSON.stringify([user.id]));
 
@@ -233,8 +230,6 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
   const handleLeaveGroup = async () => {
     try {
-      setModal({ ...getModal, isLoading: true, visible: true });
-
       const response = await fetch(`${API_URL}/chat/leave/${groupData.id}`, {
         method: 'DELETE',
         headers: {
@@ -244,13 +239,13 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
 
       const responseJson = await response.json();
       if (response.ok) {
+        setLoadedChat("");
         refresh();
         setModal({
           ...getModal,
           isLoading: false,
           visible: false,
         })
-        onClose();
       } else if (response.status === 401) {
         logout();
       } else {
@@ -271,7 +266,58 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
         message: `Failed to send media.\n${error instanceof Error ? error.message : 'Unknown error'}`,
       });
     }
+    onClose(); // Close modal after leaving group
   }
+
+  const handleDeleteChatRoom = async () => {
+    setShowDeleteModal(false);
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Request timed out'));
+        }, 7000);
+      });
+
+      const response = await Promise.race(
+        [
+          fetch(`${API_URL}/chat/${loadedChat}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            }
+          })
+        , timeoutPromise]
+      );
+
+      if (response instanceof Response) {
+        if (response.ok) {
+          setRefreshMessages(!refreshMessages);
+          setRefreshSidebar(!refreshSidebar); 
+          setLoadedChat(""); // Kembali ke daftar chat
+        } else if (response.status === 401) {
+          logout(); // Token tidak valid
+        } else {
+          const responseJson = await response.json();
+          setModal({
+            ...getModal,
+            visible: true,
+            isLoading: false,
+            message: responseJson.message || 'An error occurred while deleting the chat room.',
+          });
+        }
+      } else {
+        setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, invalid server response.'});
+      }
+    } catch (error) {
+      console.error('Error deleting chat room:', error);
+      setModal({
+        ...getModal,
+        visible: true,
+        isLoading: false,
+        message: 'Failed to delete chat room.',
+      });
+    }
+  };
 
   const renderParticipant = ({ item }: { item: UserScheme }) => {
     const isItemAdmin = groupData.admins.some(a => a.id === item.id);
@@ -370,25 +416,38 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
             contentContainerStyle={styles.participantsList}
           />
 
-          {/* Tombol Add Member (jika admin) */}
+          {/* Add Member Button */}
           {isCurrentUserAdmin && (
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => setShowAddMemberModal(true)}
-            >
-              <Ionicons name="person-add-outline" size={20} color="#fff" />
-              <Text style={styles.addButtonText}>Add Member</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => setShowAddMemberModal(true)}
+              >
+                <Ionicons name="person-add-outline" size={20} color="#fff" />
+                <Text style={styles.addButtonText}>Add Member</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.leaveButton} onPress={() => setShowDeleteModal(true)}>
+                <Text style={styles.leaveButtonText}>Remove Group</Text>
+              </TouchableOpacity>
+            </>
           )}
 
-          {/* Tombol Leave Group */}
+          {/* Leave Group Button */}
           <TouchableOpacity style={styles.leaveButton} onPress={handleLeaveGroup}>
             <Text style={styles.leaveButtonText}>Leave Group</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Modal Tambah Anggota */}
+      {/* Delete Chat Modal */}
+      <DeleteChatModal
+        visible={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteChatRoom}
+      />
+
+      {/* Add Member Modal */}
       <AddMemberModal
         visible={showAddMemberModal}
         onClose={() => setShowAddMemberModal(false)}

@@ -50,9 +50,7 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
         <TouchableOpacity style={styles.background} onPress={onClose} activeOpacity={1} />
 
         {/* Container Gambar */}
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: imageUrl }} style={styles.fullscreenImage} />
-        </View>
+        <Image source={{ uri: imageUrl }} style={styles.fullscreenImage} />
 
         {/* Tombol Close */}
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
@@ -72,19 +70,13 @@ export const ImagePreviewModal: React.FC<ImagePreviewModalProps> = ({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   background: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'transparent',
-  },
-  imageContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1,
   },
   fullscreenImage: {
     width: '95%',
@@ -101,7 +93,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 30,
     flexDirection: 'row',
-    backgroundColor: '#1e40af',
+    backgroundColor: '#4f46e5',
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 8,

@@ -217,7 +217,7 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
               />
             </View>
 
-            <View style={{ marginBottom: 30 }}>
+            {/* <View style={{ marginBottom: 30 }}>
               <Text style={styles.settingsSubtitle}>Theme</Text>
 
               <View style={styles.settingsOption}>
@@ -229,7 +229,7 @@ const SettingsPanel: React.FC<SettingsPanel> = ({ onClose, isVisible }) => {
                   trackColor={{ false: "#eee", true: "#999" }}
                 />
               </View>
-            </View>
+            </View> */}
 
           </ScrollView>
 

@@ -51,7 +51,6 @@ export default function MessagesView({
   const [message, setMessage] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showGroupInfo, setShowGroupInfo] = useState(false);
-  const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<string | null>(null);
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -220,57 +219,6 @@ export default function MessagesView({
     } catch (error) {
       console.error("Send error:", error);
       setModal({ ...getModal, visible: true, isLoading: false, message: 'Failed to send media.' });
-    }
-  };
-
-  // handle delete message
-  const handleDeleteChatRoom = async () => {
-    setShowDeleteModal(false);
-    try {
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('Request timed out'));
-        }, 7000);
-      });
-
-      const response = await Promise.race(
-        [
-          fetch(`${API_URL}/chat/${loadedChat}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            }
-          })
-        , timeoutPromise]
-      );
-
-      if (response instanceof Response) {
-        if (response.ok) {
-          setRefreshMessages(!refreshMessages);
-          setRefreshSidebar(!refreshSidebar); 
-          setLoadedChat(""); // Kembali ke daftar chat
-        } else if (response.status === 401) {
-          logout(); // Token tidak valid
-        } else {
-          const responseJson = await response.json();
-          setModal({
-            ...getModal,
-            visible: true,
-            isLoading: false,
-            message: responseJson.message || 'An error occurred while deleting the chat room.',
-          });
-        }
-      } else {
-        setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, invalid server response.'});
-      }
-    } catch (error) {
-      console.error('Error deleting chat room:', error);
-      setModal({
-        ...getModal,
-        visible: true,
-        isLoading: false,
-        message: 'Failed to delete chat room.',
-      });
     }
   };
 
@@ -465,7 +413,11 @@ export default function MessagesView({
         <View style={styles.chatHeaderActions}>
           <Ionicons name="notifications-outline" size={20} />
           <TouchableOpacity
-            onPress={() => setShowDeleteModal(true)}
+            onPress={() => {
+              if (chatDetails?.isGroup) {
+                setShowGroupInfo(true);
+              }
+            }}
           >
             <Ionicons name="ellipsis-horizontal" size={20} />
           </TouchableOpacity>
@@ -502,7 +454,7 @@ export default function MessagesView({
             {msg.type === 'image' && (
             <TouchableOpacity
               onPress={() => {
-                setSelectedImage(msg.content);
+                setSelectedImage(`${API_URL_BASE}/${msg.media}`.replace(/\\/g, "/"));
                 setShowImagePreview(true);
               }}
             >
@@ -619,7 +571,7 @@ export default function MessagesView({
             blurOnSubmit={false}
           />
           {/* Tombol Schedule / Cancel Schedule */}
-          {scheduleTime ? (
+          {/* {scheduleTime ? (
             <TouchableOpacity
               onPress={() => setScheduleTime(null)}
               style={[styles.mediaButton, { backgroundColor: "#fee2e2", padding: 8, borderRadius: 8, marginRight: 4 }]}
@@ -633,7 +585,7 @@ export default function MessagesView({
             >
               <Ionicons name="time-outline" size={20} color="#1e3a8a" />
             </TouchableOpacity>
-          )}
+          )} */}
 
           {/* Tombol Send biasa */}
           <TouchableOpacity
@@ -643,11 +595,6 @@ export default function MessagesView({
             <Text style={styles.sendButtonText}>Send</Text>
           </TouchableOpacity>
       </View>
-      <DeleteChatModal
-        visible={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={handleDeleteChatRoom}
-      />
       
       <ImagePreviewModal
         visible={showImagePreview}
@@ -660,6 +607,8 @@ export default function MessagesView({
           getModal={getModal}
           setModal={setModal}
           visibility={showGroupInfo}
+          setShowDeleteModal={setShowDeleteModal}
+          showDeleteModal={showDeleteModal}
           groupData={chatDetails}
           currentUser={currentUserData}
           onClose={() => setShowGroupInfo(false)}
