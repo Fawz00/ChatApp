@@ -103,7 +103,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       <TouchableOpacity style={styles.userItem} onPress={() => toggleSelectUser(item.id)}>
         <Image
           source={{
-            uri: item.profilePhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.username || 'User')}&background=random`,
+            uri: item.profilePhoto ? `${API_URL_BASE}/${item.profilePhoto}`.replace(/\\/g, "/") : `https://ui-avatars.com/api/?name=${encodeURIComponent(item.username || 'User')}&background=random`,
           }}
           style={styles.userAvatar}
         />

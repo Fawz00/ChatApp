@@ -361,6 +361,56 @@ export default function MessagesView({
     }
   };
 
+  const handleDeleteChatRoom = async () => {
+    setShowDeleteModal(false);
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Request timed out'));
+        }, 7000);
+      });
+
+      const response = await Promise.race(
+        [
+          fetch(`${API_URL}/chat/${loadedChat}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            }
+          })
+        , timeoutPromise]
+      );
+
+      if (response instanceof Response) {
+        if (response.ok) {
+          setRefreshMessages(!refreshMessages);
+          setRefreshSidebar(!refreshSidebar); 
+          setLoadedChat(""); // Kembali ke daftar chat
+        } else if (response.status === 401) {
+          logout(); // Token tidak valid
+        } else {
+          const responseJson = await response.json();
+          setModal({
+            ...getModal,
+            visible: true,
+            isLoading: false,
+            message: responseJson.message || 'An error occurred while deleting the chat room.',
+          });
+        }
+      } else {
+        setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, invalid server response.'});
+      }
+    } catch (error) {
+      console.error('Error deleting chat room:', error);
+      setModal({
+        ...getModal,
+        visible: true,
+        isLoading: false,
+        message: 'Failed to delete chat room.',
+      });
+    }
+  };
+
   const getChatName = () => {
     let chatName: string;
     if (chatDetails?.isGroup) {
@@ -370,6 +420,16 @@ export default function MessagesView({
       chatName = otherUser?.username || "Unknown User";
     }
     return chatName;
+  }
+  const getChatStatus = () => {
+    let chatStatus = '';
+    if (chatDetails?.isGroup) {
+      if(chatDetails?.description) chatStatus = `${chatDetails?.description}`;
+    } else {
+      const otherUser = chatDetails?.participants.find(A => A.id !== currentUserData?.id);
+      chatStatus = otherUser?.description || '';
+    }
+    return chatStatus;
   }
 
   return (
@@ -402,13 +462,15 @@ export default function MessagesView({
             onPress={() => {
               if (chatDetails?.isGroup) {
                 setShowGroupInfo(true);
+              } else {
+                setShowDeleteModal(true);
               }
             }}
             activeOpacity={0.7}
           >
             <Text style={styles.chatName}>{getChatName()}</Text>
           </TouchableOpacity>
-          <Text style={styles.status}>Active</Text>
+          <Text style={styles.status}>{getChatStatus()}</Text>
         </View>
         <View style={styles.chatHeaderActions}>
           <Ionicons name="notifications-outline" size={20} />
@@ -416,6 +478,8 @@ export default function MessagesView({
             onPress={() => {
               if (chatDetails?.isGroup) {
                 setShowGroupInfo(true);
+              } else {
+                setShowDeleteModal(true);
               }
             }}
           >
@@ -614,6 +678,13 @@ export default function MessagesView({
           onClose={() => setShowGroupInfo(false)}
         />
       )}
+
+      {/* Delete Chat Modal */}
+      <DeleteChatModal
+        visible={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteChatRoom}
+      />
         
     </View>
   );

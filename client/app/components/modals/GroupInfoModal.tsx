@@ -269,56 +269,6 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
     onClose(); // Close modal after leaving group
   }
 
-  const handleDeleteChatRoom = async () => {
-    setShowDeleteModal(false);
-    try {
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('Request timed out'));
-        }, 7000);
-      });
-
-      const response = await Promise.race(
-        [
-          fetch(`${API_URL}/chat/${loadedChat}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            }
-          })
-        , timeoutPromise]
-      );
-
-      if (response instanceof Response) {
-        if (response.ok) {
-          setRefreshMessages(!refreshMessages);
-          setRefreshSidebar(!refreshSidebar); 
-          setLoadedChat(""); // Kembali ke daftar chat
-        } else if (response.status === 401) {
-          logout(); // Token tidak valid
-        } else {
-          const responseJson = await response.json();
-          setModal({
-            ...getModal,
-            visible: true,
-            isLoading: false,
-            message: responseJson.message || 'An error occurred while deleting the chat room.',
-          });
-        }
-      } else {
-        setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, invalid server response.'});
-      }
-    } catch (error) {
-      console.error('Error deleting chat room:', error);
-      setModal({
-        ...getModal,
-        visible: true,
-        isLoading: false,
-        message: 'Failed to delete chat room.',
-      });
-    }
-  };
-
   const renderParticipant = ({ item }: { item: UserScheme }) => {
     const isItemAdmin = groupData.admins.some(a => a.id === item.id);
     const isCurrentUser = item.id === currentUser?.id;
@@ -439,13 +389,6 @@ export const GroupInfoModal: React.FC<GroupInfoModalProps> = ({
           </TouchableOpacity>
         </View>
       </View>
-
-      {/* Delete Chat Modal */}
-      <DeleteChatModal
-        visible={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        onConfirm={handleDeleteChatRoom}
-      />
 
       {/* Add Member Modal */}
       <AddMemberModal
