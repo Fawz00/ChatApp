@@ -133,13 +133,13 @@ exports.getChatDetail = async (req, res) => {
         {
           model: User,
           as: 'participants',
-          attributes: ['id', 'username', 'email', 'profilePhoto'], // Tambahkan profilePhoto
+          attributes: ['id', 'username', 'description', 'email', 'profilePhoto'], // Tambahkan profilePhoto
           through: { attributes: [] }
         },
         {
           model: User,
           as: 'admins',
-          attributes: ['id', 'username', 'email', 'profilePhoto'], // Ambil juga profilePhoto
+          attributes: ['id', 'username', 'description', 'email', 'profilePhoto'], // Ambil juga profilePhoto
           through: { attributes: [] }
         },
         {
@@ -177,12 +177,14 @@ exports.getChatDetail = async (req, res) => {
       participants: chat.participants.map(participant => ({
         id: participant.id,
         username: participant.username,
+        description: participant.description,
         email: participant.email,
         profilePhoto: participant.profilePhoto
       })),
       admins: chat.admins.map(admin => ({
         id: admin.id,
         username: admin.username,
+        description: admin.description,
         email: admin.email,
         profilePhoto: admin.profilePhoto
       })),
@@ -461,7 +463,7 @@ exports.deleteChat = async (req, res) => {
 
     // Validate if user is an admin
     const isAdmin = chat.admins.some(user => user.id === userId);
-    if (!isAdmin) {
+    if (!isAdmin && chat.isGroup) {
       return res.status(403).json({ message: 'You do not have permission to delete this chat' });
     }
 
