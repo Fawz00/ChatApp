@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,24 +10,104 @@ import {
   Dimensions,
   useWindowDimensions,
   Image,
+  SafeAreaView,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { API_URL, useAuth } from "../api/AuthProvider";
+import { SimpleModal } from "../components/modals/simple-modal";
 type AuthScreenNavigationProp = NativeStackNavigationProp<any>;
 interface IndexProps {
   navigation: AuthScreenNavigationProp;
 }
 
-const { width } = Dimensions.get("window");
+const isWeb = Platform.OS === "web";
 
 export default function Register({ navigation }: IndexProps) {
-  const { width } = useWindowDimensions();
-  const isLargeScreen = width >= 768;
-  const isWeb = Platform.OS === "web";
+  const [form, setForm] = useState({
+    username: '',
+    email: '',
+    password: '',
+    repeatPassword: '',
+  });
+  const [getModal, setModal] = useState({
+    message: '',
+    isLoading: false,
+    visible: false,
+  });
+  const [secureText, setSecureText] = useState(true);
+  const [repeatSecureText, setRepeatSecureText] = useState(true);
+  const { login } = useAuth();
+
+  let screenWidth = Dimensions.get("window").width;
+  const window = useWindowDimensions();
+  const isLargeScreen = screenWidth >= 768;
+
+  React.useEffect(() => {
+    screenWidth = window.width;
+  }, [window.width, window.height]);
+
+  const handleRegister = async () => {
+      if(form.email === '') {
+        setModal({...getModal, visible: true, message: 'Please fill your email correctly.'});
+      } else if(form.password === '') {
+        setModal({...getModal, visible: true, message: 'Please fill your password correctly.'});
+      } else if(form.repeatPassword === '' || form.repeatPassword !== form.password) {
+        setModal({...getModal, visible: true, message: 'Please fill your repeat password correctly.'});
+      } else try {
+        setModal({...getModal, visible: true, message: 'Connecting...', isLoading: true});
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Request timed out'));
+          }, 12000);
+        });
+  
+        const response = await Promise.race(
+          [
+            fetch(`${API_URL}/auth/register`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(
+                {
+                  username: form.username,
+                  email: form.email,
+                  password: form.password
+                }
+            ),
+            })
+          ,
+            timeoutPromise
+          ]
+        );
+  
+        if (response instanceof Response) {
+          const responseJson = await response.json();
+          if (responseJson.token) {
+            login(responseJson.token as string);
+            setModal({...getModal, visible: false, message: 'Success!', isLoading: false});
+            navigation.navigate("login");
+          } else {
+            setModal({...getModal, visible: true, isLoading: false, message: responseJson.message || 'An error occurred on the server.'});
+          }
+        } else {
+          setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, invalid server response.'});
+        }
+      } catch (error) {
+        setModal({...getModal, visible: true, isLoading: false, message: 'An error occurred, unable to connect the server.'});
+        console.error('An error occurred:', error);
+      }
+    }
 
   return (
+    <SafeAreaView
+      style={{
+        flex: 1,
+      }}
+    >
     <ScrollView contentContainerStyle={styles.container}>
       {isWeb && (
         <style type="text/css">
@@ -38,6 +118,14 @@ export default function Register({ navigation }: IndexProps) {
           `}
         </style>
       )}
+
+      {/* Modal Popup for Error Messages */}
+      <SimpleModal
+        visible={getModal.visible}
+        message={getModal.message}
+        isLoading={getModal.isLoading}
+        onClose={() => setModal({ ...getModal, visible: false })}
+      />
 
       {/* Left Section */}
       <LinearGradient
@@ -52,6 +140,17 @@ export default function Register({ navigation }: IndexProps) {
         <View style={styles.formWrapper}>
           <Text style={styles.signInHeader}>SIGN UP</Text>
 
+          {/* Username */}
+          <View style={styles.inputWrapper}>
+            <Feather name="user" size={20} color="#666" style={styles.icon} />
+            <TextInput
+              placeholder="Username"
+              style={styles.input}
+              placeholderTextColor="#666"
+              onChangeText={(text) => setForm({...form, username: text})}
+            />
+          </View>
+
           {/* Email */}
           <View style={styles.inputWrapper}>
             <Feather name="mail" size={20} color="#666" style={styles.icon} />
@@ -60,6 +159,8 @@ export default function Register({ navigation }: IndexProps) {
               style={styles.input}
               placeholderTextColor="#666"
               keyboardType="email-address"
+              autoCapitalize="none"
+              onChangeText={(text) => setForm({...form, email: text})}
             />
           </View>
 
@@ -70,8 +171,19 @@ export default function Register({ navigation }: IndexProps) {
               placeholder="Password"
               style={styles.input}
               placeholderTextColor="#666"
-              secureTextEntry
+              secureTextEntry={secureText}
+              onChangeText={(text) => setForm({...form, password: text})}
             />
+            <TouchableOpacity
+              style={{ padding: 8 }}
+              onPress={() => setSecureText(!secureText)}
+            >
+              {secureText ?
+                <Feather name="eye" size={20} color="#666" />
+                :
+                <Feather name="eye-off" size={20} color="#666" />
+              }
+            </TouchableOpacity>
           </View>
 
           {/* Repeat Password */}
@@ -81,12 +193,25 @@ export default function Register({ navigation }: IndexProps) {
               placeholder="Repeat Password"
               style={styles.input}
               placeholderTextColor="#666"
-              secureTextEntry
+              secureTextEntry={repeatSecureText}
+              onChangeText={(text) => setForm({...form, repeatPassword: text})}
             />
+            <TouchableOpacity
+              style={{ padding: 8 }}
+              onPress={() => setRepeatSecureText(!repeatSecureText)}
+            >
+              {repeatSecureText ?
+                <Feather name="eye" size={20} color="#666" />
+                :
+                <Feather name="eye-off" size={20} color="#666" />
+              }
+            </TouchableOpacity>
           </View>
 
           {/* Sign In Button with Gradient */}
-          <TouchableOpacity style={styles.signInButton}>
+          <TouchableOpacity style={styles.signInButton}
+            onPress={handleRegister}
+          >
             <LinearGradient
               colors={["#3b82f6", "#9333ea", "#ec4899"]}
               start={[0, 0]}
@@ -103,9 +228,6 @@ export default function Register({ navigation }: IndexProps) {
               onPress={() => navigation.navigate("login")}
             >
               <Text style={styles.footerLinkText}>Have an account</Text>
-            </TouchableOpacity>
-            <TouchableOpacity>
-              <Text style={styles.footerLinkText}>Forget Password?</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -152,6 +274,7 @@ export default function Register({ navigation }: IndexProps) {
         </View>
       )}
     </ScrollView>
+    </SafeAreaView>
   );
 };
 

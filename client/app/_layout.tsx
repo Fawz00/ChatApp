@@ -4,13 +4,17 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { AuthProvider, useAuth } from "./api/AuthProvider";
 
-import Dashboard from "./AppScreen/dashboard";
+import ChatScreen from "./AppScreen/Chat";
 import Index from "./AuthScreen/index";
 import Login from "./AuthScreen/login";
 import Register from './AuthScreen/register';
+import ForgotPassword from './AuthScreen/forgot_password';
+import NotFoundScreen from './+not-found';
+
+import { AppDrawerNavigator } from './components/drawer/app-drawer-navigation';
+import AppDrawerContent from './components/drawer/app-drawer-content';
 
 const AuthStack = createNativeStackNavigator();
-const AppDrawer = createDrawerNavigator();
 
 export default function RootLayout() {
   return (
@@ -21,11 +25,10 @@ export default function RootLayout() {
 }
 
 const BaseNavigator = () => {
-  console.log("BaseNavigator");
   const { token } = useAuth();
   if(token) {
     return (
-      <MainNavigator/>
+      <AppDrawerNavigator/>
     )
   } else {
     return (
@@ -33,21 +36,6 @@ const BaseNavigator = () => {
     )
   }
 };
-
-const MainNavigator = () => (
-    <AppDrawer.Navigator
-      initialRouteName="Dashboard"
-      screenOptions={({navigation}) => {
-        return {
-          drawerStyle: {
-            width: Dimensions.get('window').width * 0.75,
-          },
-        };
-      }}
-    >
-      <AppDrawer.Screen name="Dashboard" component={Dashboard} />
-    </AppDrawer.Navigator>
-);
 
 const AuthNavigator = () => (
   <AuthStack.Navigator
@@ -59,5 +47,6 @@ const AuthNavigator = () => (
     <AuthStack.Screen name="index" component={Index}/>
     <AuthStack.Screen name="login" component={Login}/>
     <AuthStack.Screen name="register" component={Register}/>
+    <AuthStack.Screen name="forgot_password" component={ForgotPassword}/>
   </AuthStack.Navigator>
 );
