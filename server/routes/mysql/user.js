@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/authMiddleware');
-const upload = require('../middleware/uploadMiddleware');
+const auth = require('../../middleware/authMiddleware');
+const upload = require('../../middleware/uploadMiddleware');
 
 const {
   getSelfProfile,
@@ -9,7 +9,7 @@ const {
   editProfile,
   deleteAccount,
   findUser
-} = require('../controllers/authController');
+} = require('../../controllers/mysql/authController');
 
 router.get('/me', auth, getSelfProfile);
 router.get('/:userId', auth, getUserProfile);

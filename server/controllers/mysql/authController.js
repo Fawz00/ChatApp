@@ -1,5 +1,7 @@
-const User = require('../models/User.js');
-const sendEmail = require('../utils/sendEmail');
+const { User, Message, Chat } = require('../../models/mysql');
+const { Sequelize, Op } = require('sequelize');
+
+const sendEmail = require('../../utils/sendEmail');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
@@ -13,18 +15,17 @@ exports.register = async (req, res) => {
     if (!password || password.length < 6)
       return res.status(400).json({ message: 'Password must be at least 6 characters long' });
 
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ where: { email } });
     if (userExists)
       return res.status(400).json({ message: 'Email has already been registered' });
     
-    const usernameExists = await User.findOne({ username });
+    const usernameExists = await User.findOne({ where: {username} });
     if (usernameExists)
       return res.status(400).json({ message: 'Username has already been taken' });
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = new User({ email, password: hashedPassword, username });
-    await user.save();
+    const user = await User.create({ email, password: hashedPassword, username });
 
     res.status(201).json({ message: 'User registered successfully', email: user.email });
   } catch (error) {
@@ -36,7 +37,7 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ where: { email } });
     if (!user)
       return res.status(400).json({ message: 'Email not found' });
 
@@ -44,7 +45,7 @@ exports.login = async (req, res) => {
     if (!match)
       return res.status(401).json({ message: 'Password is incorrect' });
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRES_IN
     });
 
@@ -58,7 +59,7 @@ exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ where: { email } });
     if (!user) return res.status(404).json({ message: 'Email not found' });
 
     const token = crypto.randomBytes(32).toString('hex');
@@ -89,16 +90,18 @@ exports.resetPassword = async (req, res) => {
 
   try {
     const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() }
+      where: {
+        resetPasswordToken: token,
+        resetPasswordExpires: { [Op.gt]: Date.now() }
+      }
     });
 
     if (!user) return res.status(400).json({ message: 'Token invalid or expired' });
 
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
     await user.save();
 
     res.json({ message: 'Password has been reset successfully' });
@@ -109,7 +112,9 @@ exports.resetPassword = async (req, res) => {
 
 exports.getSelfProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user).select('-password -resetPasswordToken -resetPasswordExpires');
+    const user = await User.findByPk(req.user, {
+      attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] }
+    });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     res.json(user);
@@ -122,7 +127,9 @@ exports.getUserProfile = async (req, res) => {
   const { userId } = req.params;
 
   try {
-    const user = await User.findById(userId).select('-password -resetPasswordToken -resetPasswordExpires');
+    const user = await User.findByPk(userId, {
+      attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] }
+    });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     res.json(user);
@@ -147,47 +154,60 @@ exports.editProfile = async (req, res) => {
       updates.bannerPhoto = req.files.bannerPhoto[0].path;
     }
 
-    const updatedUser = await User.findByIdAndUpdate(req.user, updates, { new: true }).select('-password');
-    res.json(updatedUser);
+    const user = await User.findByPk(req.user, {attributes: { exclude: ['password']}});
+    await user.update(updates);
+    res.json(user);
   } catch (error) {
     res.status(500).json({ message: error.message || 'Server error' });
   }
 };
 
 exports.deleteAccount = async (req, res) => {
+  const userId = req.user;
+
   try {
-    const userId = req.user;
+    await sequelize.transaction(async (t) => {
+      // Hapus user
+      await User.destroy({ where: { id: userId }, transaction: t });
 
-    // Hapus user
-    await User.findByIdAndDelete(userId);
+      // Hapus semua pesan dari user
+      await Message.destroy({ where: { senderId: userId }, transaction: t });
 
-    // Hapus pesan dari user
-    await Message.deleteMany({ sender: userId });
+      // Temukan semua chat privat (bukan grup) yang melibatkan user ini
+      const privateChats = await Chat.findAll({
+        where: { isGroup: false },
+        include: [{
+          model: User,
+          as: 'participants',
+          where: { id: userId }
+        }],
+        transaction: t
+      });
 
-    // Hapus chat 1-on-1 milik user
-    const privateChats = await Chat.find({
-      isGroup: false,
-      participants: userId
-    });
+      const privateChatIds = privateChats.map(chat => chat.id);
 
-    const privateChatIds = privateChats.map(c => c._id);
-
-    await Chat.deleteMany({ _id: { $in: privateChatIds } });
-    await Message.deleteMany({ chat: { $in: privateChatIds } });
-
-    // Keluarkan user dari grup
-    await Chat.updateMany(
-      { participants: userId },
-      {
-        $pull: {
-          participants: userId,
-          admins: userId
-        }
+      // Hapus semua chat privat dan pesannya
+      if (privateChatIds.length > 0) {
+        await Chat.destroy({ where: { id: privateChatIds }, transaction: t });
+        await Message.destroy({ where: { chatId: privateChatIds }, transaction: t });
       }
-    );
+
+      // Keluarkan user dari semua grup (many-to-many unlink)
+      // Pastikan tabel relasi many-to-many kamu: ChatParticipants, ChatAdmins
+      await sequelize.models.ChatParticipants.destroy({
+        where: { userId },
+        transaction: t
+      });
+
+      await sequelize.models.ChatAdmins.destroy({
+        where: { userId },
+        transaction: t
+      });
+    });
 
     res.json({ message: 'Account deleted successfully' });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: error.message || 'Server error' });
   }
 };
@@ -196,16 +216,23 @@ exports.findUser = async (req, res) => {
   const { keywordInput } = req.params;
 
   try {
-    const keyword = String(keywordInput || '');
+    const lowerKeyword = String(keywordInput || '').toLowerCase();
 
-    console.log('Searching for users with keyword:', keyword);
-
-    const users = await User.find({
-      $or: [
-        { email: { $regex: keyword, $options: 'i' } },
-        { username: { $regex: keyword, $options: 'i' } }
-      ]
-    }).select('-password -resetPasswordToken -resetPasswordExpires');
+    const users = await User.findAll({
+      where: {
+        [Op.or]: [
+          Sequelize.where(
+            Sequelize.fn('LOWER', Sequelize.col('email')),
+            { [Op.like]: `%${lowerKeyword}%` }
+          ),
+          Sequelize.where(
+            Sequelize.fn('LOWER', Sequelize.col('username')),
+            { [Op.like]: `%${lowerKeyword}%` }
+          )
+        ]
+      },
+      attributes: { exclude: ['password', 'resetPasswordToken', 'resetPasswordExpires'] }
+    });
 
     if (!users || users.length === 0) {
       return res.status(404).json({ message: 'No users found' });

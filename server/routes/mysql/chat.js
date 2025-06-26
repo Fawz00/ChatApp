@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const auth = require('../middleware/authMiddleware');
-const upload = require('../middleware/uploadMiddleware');
+const auth = require('../../middleware/authMiddleware');
+const upload = require('../../middleware/uploadMiddleware');
 
 const {
   createChat,
@@ -15,13 +15,15 @@ const {
   getAllChatsForUser,
   setMessageDelivered,
   setMessageRead,
-} = require('../controllers/chatController');
+  leaveGroupChat,
+} = require('../../controllers/mysql/chatController');
 
 // Chat
 router.post('/create', auth, upload.single('groupPhoto'), createChat);
 router.get('/me/all', auth, getAllChatsForUser);
 router.get('/:chatId', auth, getChatDetail);
 router.put('/:chatId', auth, upload.single('groupPhoto'), editGroupChat);
+router.delete('/leave/:chatId', auth, leaveGroupChat);
 router.delete('/:chatId', auth, deleteChat);
 
 // Message

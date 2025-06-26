@@ -1,20 +1,50 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const connectDB = require('./config/db');
+const http = require('http');
 
 dotenv.config();
 const app = express();
-connectDB();
 
 app.use(cors());
 app.use(express.json());
 
+// Socket.IO setup
+const server = http.createServer(app);
+const { initSocket } = require('./socket');
+initSocket(server);
+
+// Uploads directory setup
 app.use('/uploads', express.static('uploads'));
+const fs = require('fs');
+if (!fs.existsSync('uploads')) {
+  fs.mkdirSync('uploads');
+}
 
-app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/chat', require('./routes/chat'));
-app.use('/api/user', require('./routes/user'));
+if(process.env.USE_MYSQL === 'true') {
+    const db = require('./models/mysql');
 
-const PORT = process.env.PORT || 5000;
+    db.sequelize
+    .sync()
+    .then(() => {
+      console.log('MySQL models synced (tables created if not exist)');
+    })
+    .catch((err) => {
+      console.error('Sequelize sync error:', err.message);
+    });
+
+    app.use('/api/auth', require('./routes/mysql/authRoutes'));
+    app.use('/api/chat', require('./routes/mysql/chat'));
+    app.use('/api/user', require('./routes/mysql/user'));
+    app.use('/api/admin', require('./routes/mysql/admin'));
+} else {
+    const connectDB = require('./config/db');
+    connectDB();
+
+    app.use('/api/auth', require('./routes/authRoutes'));
+    app.use('/api/chat', require('./routes/chat'));
+    app.use('/api/user', require('./routes/user'));
+}
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

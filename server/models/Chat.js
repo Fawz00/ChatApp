@@ -6,7 +6,7 @@ const ChatSchema = new mongoose.Schema({
   description: String,
   groupPhoto: String,
   participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-  admins: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // ← Tambahan di sini
+  admins: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   lastMessage: { type: mongoose.Schema.Types.ObjectId, ref: 'Message' }
 }, { timestamps: true });
 
